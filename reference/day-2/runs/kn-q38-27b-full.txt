@@ -1,0 +1,7 @@
+--- Answer ---
+The maximum stud spacing for a standard single-layer plasterboard partition is 600 mm between stud centres [plasterboard_installation_guide.md].
+
+--- Documents mentioned in the answer ---
+  plasterboard_installation_guide.md
+
+Time 9.7s | prompt+answer ~5,147 tokens (rough: characters / 4) | 8 documents, 19,983 characters sent

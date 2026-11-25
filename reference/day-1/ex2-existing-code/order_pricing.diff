@@ -1,0 +1,131 @@
+diff -ruN -x __pycache__ -x tests -x orders_large.json ../../../knauf-nov-2026/day-1/ex2-existing-code/order_pricing/cli.py order_pricing/cli.py
+--- ../../../knauf-nov-2026/day-1/ex2-existing-code/order_pricing/cli.py	2026-11-24 21:40:20
++++ order_pricing/cli.py	2026-11-25 00:54:44
+@@ -1,17 +1,27 @@
+-import json
++"""Command line: python3 cli.py [orders.json]   (works from any folder)"""
++import pathlib
+ import sys
+-from pricing import load_products, price_order
++from pricing import price_order
++from storage import load_orders, load_products
+ 
++HERE = pathlib.Path(__file__).resolve().parent
+ 
++
++def format_result(r):
++    if r["status"] != "ok":
++        return f"Order {r['order']}: NOT PRICED  ({'; '.join(r['errors'])})"
++    disc = f"  discount -{r['discount']:.2f}" if r["discount"] else ""
++    return (f"Order {r['order']}: net {r['net']:.2f}{disc}  delivery {r['delivery']:.2f}  "
++            f"VAT {r['vat']:.2f}  total {r['gross']:.2f}")
++
++
+ def main(path):
+-    products = load_products("data/products.json")
+-    with open(path) as f:
+-        orders = json.load(f)
+-    for order in orders:
+-        result = price_order(order, products)
+-        print(f"Order {result['order']}: net {result['net']:.2f}  delivery {result['delivery']:.2f}  "
+-              f"VAT {result['vat']:.2f}  total {result['gross']:.2f}")
++    products = load_products(HERE / "data" / "products.json")
++    results = [price_order(o, products) for o in load_orders(path)]
++    for r in results:
++        print(format_result(r))
++    return 1 if any(r["status"] != "ok" for r in results) else 0     # non-zero exit if any order could not be priced
+ 
+ 
+ if __name__ == "__main__":
+-    main(sys.argv[1] if len(sys.argv) > 1 else "data/orders.json")
++    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else HERE / "data" / "orders.json"))
+diff -ruN -x __pycache__ -x tests -x orders_large.json ../../../knauf-nov-2026/day-1/ex2-existing-code/order_pricing/pricing.py order_pricing/pricing.py
+--- ../../../knauf-nov-2026/day-1/ex2-existing-code/order_pricing/pricing.py	2026-11-24 21:40:46
++++ order_pricing/pricing.py	2026-11-25 01:09:15
+@@ -1,39 +1,50 @@
+-"""Prices an order of building materials."""
+-import json
++"""Prices an order of building materials. Pure logic: no files, no printing, no command line (see storage.py and cli.py)."""
+ 
+ VAT_RATE = 0.19
+-FREE_DELIVERY_OVER = 500.0
++FREE_DELIVERY_FROM = 500.0        # net goods value at or above which delivery is free (FIX 2: was "over", so exactly 500 paid)
+ DELIVERY_FEE = 45.0
+-CONTRACT_DISCOUNT = 0.08
++CONTRACT_DISCOUNT = 0.08          # contract customers pay 92% of list price
++LARGE_ORDER_OVER = 2000.0         # NEW: orders with goods net strictly over this get the volume discount ...
++LARGE_ORDER_DISCOUNT = 0.05       # ... of 5%, unless the order already has the contract rate
+ 
+ 
+-def load_products(path):
+-    with open(path) as f:
+-        return {p["sku"]: p for p in json.load(f)}
+-
+-
+ def line_total(product, quantity, contract):
+     price = product["unit_price"]
+     if contract:
+-        price = price * CONTRACT_DISCOUNT
++        price = price * (1 - CONTRACT_DISCOUNT)   # FIX 1: was price * 0.08, which charged 8% of the price
+     return round(price * quantity, 2)
+ 
+ 
+ def delivery_fee(net_total):
+-    if net_total > FREE_DELIVERY_OVER:
++    return 0.0 if net_total >= FREE_DELIVERY_FROM else DELIVERY_FEE
++
++
++def volume_discount(goods_net, contract):
++    """5% of the goods value for an order over 2,000 EUR net that does not already have the contract rate."""
++    if contract or goods_net <= LARGE_ORDER_OVER:
+         return 0.0
+-    return DELIVERY_FEE
++    return round(goods_net * LARGE_ORDER_DISCOUNT, 2)
+ 
+ 
+ def price_order(order, products):
+-    net = 0.0
+-    lines = []
++    """Price one order. Never raises for bad catalogue data: an order with an unknown SKU comes back with
++    status "error" and the reasons, so one bad order cannot stop a whole run (FIX 3)."""
++    contract = order.get("contract", False)
++    lines, unknown = [], []
+     for item in order["items"]:
+-        product = products[item["sku"]]
+-        total = line_total(product, item["qty"], order.get("contract", False))
+-        lines.append({"sku": item["sku"], "name": product["name"], "qty": item["qty"], "total": total})
+-        net += total
++        product = products.get(item["sku"])
++        if product is None:
++            unknown.append(item["sku"])
++            continue
++        lines.append({"sku": item["sku"], "name": product["name"], "qty": item["qty"],
++                      "total": line_total(product, item["qty"], contract)})
++    if unknown:
++        return {"order": order["id"], "status": "error", "errors": [f"unknown SKU {s}" for s in unknown],
++                "lines": lines, "net": None, "discount": None, "delivery": None, "vat": None, "gross": None}
++    goods = round(sum(l["total"] for l in lines), 2)
++    discount = volume_discount(goods, contract)
++    net = round(goods - discount, 2)
+     fee = delivery_fee(net)
+     vat = round((net + fee) * VAT_RATE, 2)
+-    return {"order": order["id"], "lines": lines, "net": round(net, 2), "delivery": fee,
+-            "vat": vat, "gross": round(net + fee + vat, 2)}
++    return {"order": order["id"], "status": "ok", "errors": [], "lines": lines, "goods": goods, "discount": discount,
++            "net": net, "delivery": fee, "vat": vat, "gross": round(net + fee + vat, 2)}
+diff -ruN -x __pycache__ -x tests -x orders_large.json ../../../knauf-nov-2026/day-1/ex2-existing-code/order_pricing/storage.py order_pricing/storage.py
+--- ../../../knauf-nov-2026/day-1/ex2-existing-code/order_pricing/storage.py	1970-01-01 01:00:00
++++ order_pricing/storage.py	2026-11-25 00:54:44
+@@ -0,0 +1,12 @@
++"""Reading the data files. Kept apart from the pricing rules so the rules can be tested without files."""
++import json
++
++
++def load_products(path):
++    with open(path) as f:
++        return {p["sku"]: p for p in json.load(f)}
++
++
++def load_orders(path):
++    with open(path) as f:
++        return json.load(f)

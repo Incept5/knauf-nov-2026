@@ -1,0 +1,7 @@
+[
+  {"sku": "PB-125", "name": "Plasterboard 12.5 mm 1200x2000", "unit_price": 8.90},
+  {"sku": "PB-150", "name": "Plasterboard 15 mm fire-rated 1200x2000", "unit_price": 12.40},
+  {"sku": "INS-100", "name": "Mineral wool insulation 100 mm, per m2", "unit_price": 6.75},
+  {"sku": "JT-25", "name": "Jointing compound 25 kg", "unit_price": 18.90},
+  {"sku": "SC-500", "name": "Drywall screws 500 pcs", "unit_price": 7.50}
+]

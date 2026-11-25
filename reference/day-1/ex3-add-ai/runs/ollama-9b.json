@@ -1,0 +1,516 @@
+{
+ "label": "ollama-9b",
+ "model": "qwen3.5:9b",
+ "cases": [
+  {
+   "rep": 0,
+   "task": "summarise",
+   "doc": "delivery_note.txt",
+   "seconds": 2.77,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 272,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 105,
+     "total_tokens": 377
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Delivered 46 fire-rated plasterboards with a partial short delivery and back-order expected for October 21.",
+     "Three boards arrived damaged due to water exposure on pallet 2 and were documented by the site foreman.",
+     "Delivery was completed between 07:40 and 09:15 using a crane lorry."
+    ],
+    "risk": "medium",
+    "risk_reason": "Partial delivery delay and confirmed material damage require immediate back-order coordination and replacement logistics."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 2.77,
+     "raw": "{\"bullets\": [\"Delivered 46 fire-rated plasterboards with a partial short delivery and back-order expected for October 21.\", \"Three boards arrived damaged due to water exposure on pallet 2 and were documented by the site foreman.\", \"Delivery was completed between 07:40 and 09:15 using a crane lorry.\"], \"risk\": \"medium\", \"risk_reason\": \"Partial delivery delay and confirmed material damage require immediate back-order coordination and replacement logistics.\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "summarise",
+   "doc": "site_incident_report.txt",
+   "seconds": 2.32,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 265,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 85,
+     "total_tokens": 350
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Jointing compound buckets tipped over in the stairwell when the lift was called.",
+     "No injuries occurred but a slip hazard existed until cleaned at 11:20.",
+     "Contributing factors included uneven ground, lack of barriers, and unauthorized storage location."
+    ],
+    "risk": "low",
+    "risk_reason": "Incident resulted in no injuries with immediate cleanup and corrective actions initiated."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 2.32,
+     "raw": "{\"bullets\": [\"Jointing compound buckets tipped over in the stairwell when the lift was called.\", \"No injuries occurred but a slip hazard existed until cleaned at 11:20.\", \"Contributing factors included uneven ground, lack of barriers, and unauthorized storage location.\"], \"risk\": \"low\", \"risk_reason\": \"Incident resulted in no injuries with immediate cleanup and corrective actions initiated.\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "summarise",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 1.32,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 233,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 72,
+     "total_tokens": 305
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Fire resistance up to 90 min with specific steel stud configuration",
+     "Not suitable for permanently wet areas without moisture-resistant board",
+     "Store flat and dry with maximum stacking height of 8 pallets"
+    ],
+    "risk": "low",
+    "risk_reason": "No safety hazards or compliance issues identified in the provided product data."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 1.32,
+     "raw": "{\"bullets\": [\"Fire resistance up to 90 min with specific steel stud configuration\", \"Not suitable for permanently wet areas without moisture-resistant board\", \"Store flat and dry with maximum stacking height of 8 pallets\"], \"risk\": \"low\", \"risk_reason\": \"No safety hazards or compliance issues identified in the provided product data.\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "extract",
+   "doc": "delivery_note.txt",
+   "seconds": 1.65,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 281,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 99,
+     "total_tokens": 380
+    }
+   ],
+   "data": {
+    "date": "2026-10-14",
+    "site": "Neubau Schulzentrum Nord, Munich",
+    "material": "Plasterboard 15 mm fire-rated 1200x2000",
+    "quantity": 46,
+    "unit": null,
+    "problem": "3 boards damaged on arrival (water damage on pallet 2); 4 short-delivered",
+    "who_must_act": [
+     "site foreman"
+    ]
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 1.65,
+     "raw": "{\"date\": \"2026-10-14\", \"site\": \"Neubau Schulzentrum Nord, Munich\", \"material\": \"Plasterboard 15 mm fire-rated 1200x2000\", \"quantity\": 46, \"unit\": null, \"problem\": \"3 boards damaged on arrival (water damage on pallet 2); 4 short-delivered\", \"who_must_act\": [\"site foreman\"]}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "extract",
+   "doc": "site_incident_report.txt",
+   "seconds": 1.41,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 274,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 81,
+     "total_tokens": 355
+    }
+   ],
+   "data": {
+    "date": "2026-11-02",
+    "site": "Wohnanlage Lindenhof, building B, level 3",
+    "material": "jointing compound",
+    "quantity": 2,
+    "unit": "buckets",
+    "problem": "stack tipped over creating a slip risk",
+    "who_must_act": [
+     "site manager",
+     "H&S officer"
+    ]
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 1.41,
+     "raw": "{\"date\": \"2026-11-02\", \"site\": \"Wohnanlage Lindenhof, building B, level 3\", \"material\": \"jointing compound\", \"quantity\": 2, \"unit\": \"buckets\", \"problem\": \"stack tipped over creating a slip risk\", \"who_must_act\": [\"site manager\", \"H&S officer\"]}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "extract",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 0.88,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 242,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 47,
+     "total_tokens": 289
+    }
+   ],
+   "data": {
+    "date": null,
+    "site": null,
+    "material": "Fire-rated plasterboard 15 mm",
+    "quantity": null,
+    "unit": null,
+    "problem": null,
+    "who_must_act": []
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 0.88,
+     "raw": "{\"date\": null, \"site\": null, \"material\": \"Fire-rated plasterboard 15 mm\", \"quantity\": null, \"unit\": null, \"problem\": null, \"who_must_act\": []}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "check",
+   "doc": "delivery_note.txt",
+   "seconds": 1.63,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 376,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     },
+     "completion_tokens": 97,
+     "total_tokens": 473
+    }
+   ],
+   "data": {
+    "order_id": "A-1003",
+    "product_matches": true,
+    "ordered_qty": 50,
+    "delivered_qty": 46,
+    "short_qty": 4,
+    "damaged_qty": 3,
+    "consistent": false,
+    "issues": [
+     "Short delivery: 4 units missing",
+     "Damaged goods: 3 units with water damage"
+    ],
+    "next_action": "Process back-order for short quantity and claim for damaged goods"
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 1.63,
+     "raw": "{\"order_id\": \"A-1003\", \"product_matches\": true, \"ordered_qty\": 50, \"delivered_qty\": 46, \"short_qty\": 4, \"damaged_qty\": 3, \"consistent\": false, \"issues\": [\"Short delivery: 4 units missing\", \"Damaged goods: 3 units with water damage\"], \"next_action\": \"Process back-order for short quantity and claim for damaged goods\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "summarise",
+   "doc": "delivery_note.txt",
+   "seconds": 1.56,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 272,
+     "prompt_tokens_details": {
+      "cached_tokens": 268
+     },
+     "completion_tokens": 105,
+     "total_tokens": 377
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Delivered 46 fire-rated plasterboards with a partial short delivery and back-order expected for October 21.",
+     "Three boards arrived damaged due to water exposure on pallet 2 and were documented by the site foreman.",
+     "Delivery was completed between 07:40 and 09:15 using a crane lorry."
+    ],
+    "risk": "medium",
+    "risk_reason": "Partial delivery delay and confirmed material damage require immediate back-order coordination and replacement logistics."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 1.56,
+     "raw": "{\"bullets\": [\"Delivered 46 fire-rated plasterboards with a partial short delivery and back-order expected for October 21.\", \"Three boards arrived damaged due to water exposure on pallet 2 and were documented by the site foreman.\", \"Delivery was completed between 07:40 and 09:15 using a crane lorry.\"], \"risk\": \"medium\", \"risk_reason\": \"Partial delivery delay and confirmed material damage require immediate back-order coordination and replacement logistics.\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "summarise",
+   "doc": "site_incident_report.txt",
+   "seconds": 1.28,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 265,
+     "prompt_tokens_details": {
+      "cached_tokens": 261
+     },
+     "completion_tokens": 85,
+     "total_tokens": 350
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Jointing compound buckets tipped over in the stairwell when the lift was called.",
+     "No injuries occurred but a slip hazard existed until cleaned at 11:20.",
+     "Contributing factors included uneven ground, lack of barriers, and unauthorized storage location."
+    ],
+    "risk": "low",
+    "risk_reason": "Incident resulted in no injuries with immediate cleanup and corrective actions initiated."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 1.28,
+     "raw": "{\"bullets\": [\"Jointing compound buckets tipped over in the stairwell when the lift was called.\", \"No injuries occurred but a slip hazard existed until cleaned at 11:20.\", \"Contributing factors included uneven ground, lack of barriers, and unauthorized storage location.\"], \"risk\": \"low\", \"risk_reason\": \"Incident resulted in no injuries with immediate cleanup and corrective actions initiated.\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "summarise",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 3.8,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 233,
+     "prompt_tokens_details": {
+      "cached_tokens": 229
+     },
+     "completion_tokens": 72,
+     "total_tokens": 305
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Fire resistance up to 90 min with specific steel stud configuration",
+     "Not suitable for permanently wet areas without moisture-resistant board",
+     "Store flat and dry with maximum stacking height of 8 pallets"
+    ],
+    "risk": "low",
+    "risk_reason": "No safety hazards or compliance issues identified in the provided product data."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 3.8,
+     "raw": "{\"bullets\": [\"Fire resistance up to 90 min with specific steel stud configuration\", \"Not suitable for permanently wet areas without moisture-resistant board\", \"Store flat and dry with maximum stacking height of 8 pallets\"], \"risk\": \"low\", \"risk_reason\": \"No safety hazards or compliance issues identified in the provided product data.\"}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "extract",
+   "doc": "delivery_note.txt",
+   "seconds": 4.2,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 281,
+     "prompt_tokens_details": {
+      "cached_tokens": 277
+     },
+     "completion_tokens": 99,
+     "total_tokens": 380
+    }
+   ],
+   "data": {
+    "date": "2026-10-14",
+    "site": "Neubau Schulzentrum Nord, Munich",
+    "material": "Plasterboard 15 mm fire-rated 1200x2000",
+    "quantity": 46,
+    "unit": null,
+    "problem": "3 boards damaged on arrival (water damage on pallet 2); 4 short-delivered",
+    "who_must_act": [
+     "site foreman"
+    ]
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 4.2,
+     "raw": "{\"date\": \"2026-10-14\", \"site\": \"Neubau Schulzentrum Nord, Munich\", \"material\": \"Plasterboard 15 mm fire-rated 1200x2000\", \"quantity\": 46, \"unit\": null, \"problem\": \"3 boards damaged on arrival (water damage on pallet 2); 4 short-delivered\", \"who_must_act\": [\"site foreman\"]}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "extract",
+   "doc": "site_incident_report.txt",
+   "seconds": 17.99,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 274,
+     "prompt_tokens_details": {
+      "cached_tokens": 270
+     },
+     "completion_tokens": 81,
+     "total_tokens": 355
+    }
+   ],
+   "data": {
+    "date": "2026-11-02",
+    "site": "Wohnanlage Lindenhof, building B, level 3",
+    "material": "jointing compound",
+    "quantity": 2,
+    "unit": "buckets",
+    "problem": "stack tipped over creating a slip risk",
+    "who_must_act": [
+     "site manager",
+     "H&S officer"
+    ]
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 17.99,
+     "raw": "{\"date\": \"2026-11-02\", \"site\": \"Wohnanlage Lindenhof, building B, level 3\", \"material\": \"jointing compound\", \"quantity\": 2, \"unit\": \"buckets\", \"problem\": \"stack tipped over creating a slip risk\", \"who_must_act\": [\"site manager\", \"H&S officer\"]}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "extract",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 11.63,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 242,
+     "prompt_tokens_details": {
+      "cached_tokens": 238
+     },
+     "completion_tokens": 47,
+     "total_tokens": 289
+    }
+   ],
+   "data": {
+    "date": null,
+    "site": null,
+    "material": "Fire-rated plasterboard 15 mm",
+    "quantity": null,
+    "unit": null,
+    "problem": null,
+    "who_must_act": []
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 11.63,
+     "raw": "{\"date\": null, \"site\": null, \"material\": \"Fire-rated plasterboard 15 mm\", \"quantity\": null, \"unit\": null, \"problem\": null, \"who_must_act\": []}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "check",
+   "doc": "delivery_note.txt",
+   "seconds": 4.6,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 376,
+     "prompt_tokens_details": {
+      "cached_tokens": 372
+     },
+     "completion_tokens": 97,
+     "total_tokens": 473
+    }
+   ],
+   "data": {
+    "order_id": "A-1003",
+    "product_matches": true,
+    "ordered_qty": 50,
+    "delivered_qty": 46,
+    "short_qty": 4,
+    "damaged_qty": 3,
+    "consistent": false,
+    "issues": [
+     "Short delivery: 4 units missing",
+     "Damaged goods: 3 units with water damage"
+    ],
+    "next_action": "Process back-order for short quantity and claim for damaged goods"
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 4.6,
+     "raw": "{\"order_id\": \"A-1003\", \"product_matches\": true, \"ordered_qty\": 50, \"delivered_qty\": 46, \"short_qty\": 4, \"damaged_qty\": 3, \"consistent\": false, \"issues\": [\"Short delivery: 4 units missing\", \"Damaged goods: 3 units with water damage\"], \"next_action\": \"Process back-order for short quantity and claim for damaged goods\"}",
+     "problems": []
+    }
+   ]
+  }
+ ]
+}

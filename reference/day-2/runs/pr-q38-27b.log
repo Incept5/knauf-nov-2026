@@ -1,0 +1,6 @@
+01-typo-docs 5.3 calls 1 chunks 1 risk low approve gate auto_merge_candidate findings 0 problems [] 
+02-delivery-date-feature 10.0 calls 1 chunks 1 risk low approve gate auto_merge_candidate findings 1 problems [] 
+03-money-rounding 22.7 calls 1 chunks 1 risk high block gate block findings 4 problems [] 
+04-security-customer-search 23.8 calls 1 chunks 1 risk high block gate block findings 4 problems [] 
+05-rename-reports 31.1 calls 2 chunks 2 risk medium block gate block findings 1 problems [] 
+06-refund-endpoint 18.6 calls 1 chunks 1 risk medium needs_human_review gate human_review findings 2 problems [] 

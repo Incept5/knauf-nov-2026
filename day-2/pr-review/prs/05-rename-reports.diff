@@ -1,0 +1,633 @@
+diff --git a/orders/export.py b/orders/export.py
+--- a/orders/export.py
++++ b/orders/export.py
+@@ -1,4 +1,4 @@
+-"""Exports for the accounting system. Older code: names are abbreviated (standard 1).
++"""Exports for the accounting system. Names are spelled out in full (standard 1).
+ 
+ Rows are plain dicts. Amounts are Decimal strings in EUR. Output is semicolon-separated text.
+ """
+@@ -8,131 +8,131 @@
+ HEADER = ["inv_id", "cust_id", "inv_dt", "net_amt", "vat_amt", "gross_amt"]
+ 
+ 
+-def fmt_amt(amt):
+-    return str(Decimal(str(amt)).quantize(CENT, rounding=ROUND_HALF_UP))
++def format_amount(amount):
++    return str(Decimal(str(amount)).quantize(CENT, rounding=ROUND_HALF_UP))
+ 
+ 
+-def esc(val):
++def escape(value):
+     """Quote a text value for the semicolon format."""
+-    txt = str(val).replace('"', '""')
+-    if ";" in txt or '"' in txt or "\n" in txt:
+-        return '"' + txt + '"'
+-    return txt
++    text = str(value).replace('"', '""')
++    if ";" in text or '"' in text or "\n" in text:
++        return '"' + text + '"'
++    return text
+ 
+ 
+-def inv_row(inv):
+-    return [inv["inv_id"], inv["cust_id"], inv["inv_dt"].isoformat(), fmt_amt(inv["net_amt"]),
+-            fmt_amt(inv["vat_amt"]), fmt_amt(inv["gross_amt"])]
++def invoice_row(invoice):
++    return [invoice["inv_id"], invoice["cust_id"], invoice["inv_dt"].isoformat(), format_amount(invoice["net_amt"]),
++            format_amount(invoice["vat_amt"]), format_amount(invoice["gross_amt"])]
+ 
+ 
+-def inv_line(inv):
+-    return ";".join(esc(val) for val in inv_row(inv))
++def invoice_line(invoice):
++    return ";".join(escape(value) for value in invoice_row(invoice))
+ 
+ 
+-def export_invs(invs):
++def export_invoices(invoices):
+     lines = [";".join(HEADER)]
+-    for inv in invs:
+-        lines.append(inv_line(inv))
++    for invoice in invoices:
++        lines.append(invoice_line(invoice))
+     return "\n".join(lines) + "\n"
+ 
+ 
+-def export_invs_for_cust(invs, cust_id):
+-    return export_invs([inv for inv in invs if inv["cust_id"] == cust_id])
++def export_invoices_for_customer(invoices, customer_id):
++    return export_invoices([invoice for invoice in invoices if invoice["cust_id"] == customer_id])
+ 
+ 
+-def export_invs_between(invs, first_dt, last_dt):
+-    sel = [inv for inv in invs if first_dt <= inv["inv_dt"] <= last_dt]
+-    sel.sort(key=lambda inv: (inv["inv_dt"], inv["inv_id"]))
+-    return export_invs(sel)
++def export_invoices_between(invoices, first_date, last_date):
++    selected = [invoice for invoice in invoices if first_date <= invoice["inv_dt"] <= last_date]
++    selected.sort(key=lambda invoice: (invoice["inv_dt"], invoice["inv_id"]))
++    return export_invoices(selected)
+ 
+ 
+-def check_inv(inv):
++def check_invoice(invoice):
+     """Return a list of problems with one invoice (empty list means fine)."""
+-    probs = []
+-    net_amt = Decimal(str(inv["net_amt"]))
+-    vat_amt = Decimal(str(inv["vat_amt"]))
+-    gross_amt = Decimal(str(inv["gross_amt"]))
+-    if net_amt < 0:
+-        probs.append("negative net amount")
+-    if vat_amt < 0:
+-        probs.append("negative VAT amount")
+-    if net_amt + vat_amt != gross_amt:
+-        probs.append("net + VAT does not equal gross")
+-    if not inv["cust_id"]:
+-        probs.append("missing customer id")
+-    return probs
++    problems = []
++    net_amount = Decimal(str(invoice["net_amt"]))
++    vat_amount = Decimal(str(invoice["vat_amt"]))
++    gross_amount = Decimal(str(invoice["gross_amt"]))
++    if net_amount < 0:
++        problems.append("negative net amount")
++    if vat_amount < 0:
++        problems.append("negative VAT amount")
++    if net_amount + vat_amount != gross_amount:
++        problems.append("net + VAT does not equal gross")
++    if not invoice["cust_id"]:
++        problems.append("missing customer id")
++    return problems
+ 
+ 
+-def check_invs(invs):
+-    res = {}
+-    for inv in invs:
+-        probs = check_inv(inv)
+-        if probs:
+-            res[inv["inv_id"]] = probs
+-    return res
++def check_invoices(invoices):
++    result = {}
++    for invoice in invoices:
++        problems = check_invoice(invoice)
++        if problems:
++            result[invoice["inv_id"]] = problems
++    return result
+ 
+ 
+-def split_valid(invs):
+-    ok_lst = []
+-    bad_lst = []
+-    for inv in invs:
+-        if check_inv(inv):
+-            bad_lst.append(inv)
++def split_valid(invoices):
++    valid_items = []
++    invalid_items = []
++    for invoice in invoices:
++        if check_invoice(invoice):
++            invalid_items.append(invoice)
+         else:
+-            ok_lst.append(inv)
+-    return ok_lst, bad_lst
++            valid_items.append(invoice)
++    return valid_items, invalid_items
+ 
+ 
+-def tot_row(invs):
+-    net_tot = Decimal("0.00")
+-    vat_tot = Decimal("0.00")
+-    gross_tot = Decimal("0.00")
+-    for inv in invs:
+-        net_tot += Decimal(str(inv["net_amt"]))
+-        vat_tot += Decimal(str(inv["vat_amt"]))
+-        gross_tot += Decimal(str(inv["gross_amt"]))
+-    return ["TOTAL", "", "", fmt_amt(net_tot), fmt_amt(vat_tot), fmt_amt(gross_tot)]
++def total_row(invoices):
++    net_total = Decimal("0.00")
++    vat_total = Decimal("0.00")
++    gross_total = Decimal("0.00")
++    for invoice in invoices:
++        net_total += Decimal(str(invoice["net_amt"]))
++        vat_total += Decimal(str(invoice["vat_amt"]))
++        gross_total += Decimal(str(invoice["gross_amt"]))
++    return ["TOTAL", "", "", format_amount(net_total), format_amount(vat_total), format_amount(gross_total)]
+ 
+ 
+-def export_with_tot(invs):
+-    txt = export_invs(invs)
+-    return txt + ";".join(esc(val) for val in tot_row(invs)) + "\n"
++def export_with_total(invoices):
++    text = export_invoices(invoices)
++    return text + ";".join(escape(value) for value in total_row(invoices)) + "\n"
+ 
+ 
+-def cust_tot_rows(invs):
+-    by_cust = {}
+-    for inv in invs:
+-        cur = by_cust.setdefault(inv["cust_id"], {"cnt": 0, "gross_tot": Decimal("0.00")})
+-        cur["cnt"] += 1
+-        cur["gross_tot"] += Decimal(str(inv["gross_amt"]))
+-    return [[cust_id, cur["cnt"], fmt_amt(cur["gross_tot"])] for cust_id, cur in sorted(by_cust.items())]
++def customer_total_rows(invoices):
++    by_customer = {}
++    for invoice in invoices:
++        current = by_customer.setdefault(invoice["cust_id"], {"cnt": 0, "gross_tot": Decimal("0.00")})
++        current["cnt"] += 1
++        current["gross_tot"] += Decimal(str(invoice["gross_amt"]))
++    return [[customer_id, current["cnt"], format_amount(current["gross_tot"])] for customer_id, current in sorted(by_customer.items())]
+ 
+ 
+-def export_cust_tots(invs):
++def export_customer_totals(invoices):
+     lines = ["cust_id;inv_cnt;gross_tot"]
+-    for row in cust_tot_rows(invs):
+-        lines.append(";".join(esc(val) for val in row))
++    for row in customer_total_rows(invoices):
++        lines.append(";".join(escape(value) for value in row))
+     return "\n".join(lines) + "\n"
+ 
+ 
+-def parse_amt(txt):
++def parse_amount(text):
+     """Read an amount written the German way (1.234,56) or the plain way (1234.56)."""
+-    txt = txt.strip()
+-    if "," in txt:
+-        txt = txt.replace(".", "").replace(",", ".")
+-    return Decimal(txt)
++    text = text.strip()
++    if "," in text:
++        text = text.replace(".", "").replace(",", ".")
++    return Decimal(text)
+ 
+ 
+ def parse_line(line):
+-    vals = line.rstrip("\n").split(";")
+-    if len(vals) != len(HEADER):
+-        raise ValueError(f"expected {len(HEADER)} fields, got {len(vals)}")
+-    return {"inv_id": vals[0], "cust_id": vals[1], "inv_dt": vals[2],
+-            "net_amt": parse_amt(vals[3]), "vat_amt": parse_amt(vals[4]), "gross_amt": parse_amt(vals[5])}
++    values = line.rstrip("\n").split(";")
++    if len(values) != len(HEADER):
++        raise ValueError(f"expected {len(HEADER)} fields, got {len(values)}")
++    return {"inv_id": values[0], "cust_id": values[1], "inv_dt": values[2],
++            "net_amt": parse_amount(values[3]), "vat_amt": parse_amount(values[4]), "gross_amt": parse_amount(values[5])}
+ 
+ 
+-def parse_export(txt):
+-    lines = txt.splitlines()
++def parse_export(text):
++    lines = text.splitlines()
+     if not lines or lines[0].split(";") != HEADER:
+         raise ValueError("unexpected header")
+     return [parse_line(line) for line in lines[1:] if line and not line.startswith("TOTAL")]
+diff --git a/orders/reports.py b/orders/reports.py
+--- a/orders/reports.py
++++ b/orders/reports.py
+@@ -1,4 +1,4 @@
+-"""Management reports. Older code: names are abbreviated and still to be cleaned up (standard 1).
++"""Management reports. Names are spelled out in full (standard 1).
+ 
+ Every function takes plain lists of dicts, so it can be run without a database.
+ Amounts are Decimal strings in EUR.
+@@ -10,174 +10,174 @@
+ OVERDUE_AFTER_DAYS = 30
+ 
+ 
+-def fmt_amt(amt):
++def format_amount(amount):
+     """Format an amount in EUR with two decimals, halves round up."""
+-    return str(Decimal(str(amt)).quantize(CENT, rounding=ROUND_HALF_UP))
+-
+-
+-def sum_amts(amts):
+-    tot = Decimal("0.00")
+-    for amt in amts:
+-        tot += Decimal(str(amt))
+-    return tot
+-
+-
+-def group_by_cust(rows):
+-    res = defaultdict(list)
+-    for row in rows:
+-        res[row["cust_id"]].append(row)
+-    return res
+-
+-
+-def group_by_prod(rows):
+-    res = defaultdict(list)
+-    for row in rows:
+-        res[row["prod_sku"]].append(row)
+-    return res
++    return str(Decimal(str(amount)).quantize(CENT))
++
++
++def sum_amounts(amounts):
++    total = Decimal("0.00")
++    for amount in amounts:
++        total += Decimal(str(amount))
++    return total
++
++
++def group_by_customer(rows):
++    result = defaultdict(list)
++    for row in rows:
++        result[row["cust_id"]].append(row)
++    return result
++
++
++def group_by_product(rows):
++    result = defaultdict(list)
++    for row in rows:
++        result[row["prod_sku"]].append(row)
++    return result
+ 
+ 
+ def daily_sales(rows, day):
+     """Sales for one day: order count, units and net amount."""
+-    cnt = 0
+-    qty_tot = 0
+-    amt_tot = Decimal("0.00")
++    count = 0
++    quantity_total = 0
++    amount_total = Decimal("0.00")
+     for row in rows:
+         if row["order_dt"] != day:
+             continue
+-        cnt += 1
+-        qty_tot += row["qty"]
+-        amt_tot += Decimal(str(row["amt"]))
+-    return {"day": day, "orders": cnt, "units": qty_tot, "net": fmt_amt(amt_tot)}
++        count += 1
++        quantity_total += row["qty"]
++        amount_total += Decimal(str(row["amt"]))
++    return {"day": day, "orders": count, "units": quantity_total, "net": format_amount(amount_total)}
+ 
+ 
+ def daily_sales_range(rows, first_day, last_day):
+-    res = []
++    result = []
+     days = sorted({row["order_dt"] for row in rows})
+     for day in days:
+         if first_day <= day <= last_day:
+-            res.append(daily_sales(rows, day))
+-    return res
+-
+-
+-def cust_statement(rows, cust_id):
++            result.append(daily_sales(rows, day))
++    return result
++
++
++def customer_statement(rows, customer_id):
+     """All orders of one customer with a running total."""
+-    lst = [row for row in rows if row["cust_id"] == cust_id]
+-    lst.sort(key=lambda row: row["order_dt"])
+-    run_tot = Decimal("0.00")
++    items = [row for row in rows if row["cust_id"] == customer_id]
++    items.sort(key=lambda row: row["order_dt"])
++    running_total = Decimal("0.00")
+     out = []
+-    for row in lst:
+-        run_tot += Decimal(str(row["amt"]))
++    for row in items:
++        running_total += Decimal(str(row["amt"]))
+         out.append({
+             "order_id": row["order_id"],
+             "order_dt": row["order_dt"],
+-            "amt": fmt_amt(row["amt"]),
+-            "run_tot": fmt_amt(run_tot),
++            "amt": format_amount(row["amt"]),
++            "run_tot": format_amount(running_total),
+         })
+     return out
+ 
+ 
+-def cust_totals(rows):
+-    res = {}
+-    for cust_id, cust_rows in group_by_cust(rows).items():
+-        res[cust_id] = {
+-            "orders": len(cust_rows),
+-            "units": sum(row["qty"] for row in cust_rows),
+-            "amt": fmt_amt(sum_amts(row["amt"] for row in cust_rows)),
++def customer_totals(rows):
++    result = {}
++    for customer_id, customer_rows in group_by_customer(rows).items():
++        result[customer_id] = {
++            "orders": len(customer_rows),
++            "units": sum(row["qty"] for row in customer_rows),
++            "amt": format_amount(sum_amounts(row["amt"] for row in customer_rows)),
+         }
+-    return res
+-
+-
+-def top_custs(rows, limit=5):
+-    tots = cust_totals(rows)
+-    ranked = sorted(tots.items(), key=lambda pair: Decimal(pair[1]["amt"]), reverse=True)
+-    return [{"cust_id": cust_id, **tot} for cust_id, tot in ranked[:limit]]
+-
+-
+-def prod_totals(rows):
+-    res = {}
+-    for sku, prod_rows in group_by_prod(rows).items():
+-        res[sku] = {
+-            "units": sum(row["qty"] for row in prod_rows),
+-            "amt": fmt_amt(sum_amts(row["amt"] for row in prod_rows)),
+-            "orders": len({row["order_id"] for row in prod_rows}),
++    return result
++
++
++def top_customers(rows, limit=5):
++    totals = customer_totals(rows)
++    ranked = sorted(totals.items(), key=lambda pair: Decimal(pair[1]["amt"]), reverse=True)
++    return [{"cust_id": customer_id, **total} for customer_id, total in ranked[:limit]]
++
++
++def product_totals(rows):
++    result = {}
++    for sku, product_rows in group_by_product(rows).items():
++        result[sku] = {
++            "units": sum(row["qty"] for row in product_rows),
++            "amt": format_amount(sum_amounts(row["amt"] for row in product_rows)),
++            "orders": len({row["order_id"] for row in product_rows}),
+         }
+-    return res
+-
+-
+-def top_prods(rows, limit=5):
+-    tots = prod_totals(rows)
+-    ranked = sorted(tots.items(), key=lambda pair: pair[1]["units"], reverse=True)
+-    return [{"prod_sku": sku, **tot} for sku, tot in ranked[:limit]]
+-
+-
+-def slow_prods(rows, all_skus, min_qty=1):
++    return result
++
++
++def top_products(rows, limit=5):
++    totals = product_totals(rows)
++    ranked = sorted(totals.items(), key=lambda pair: pair[1]["units"], reverse=True)
++    return [{"prod_sku": sku, **total} for sku, total in ranked[:limit]]
++
++
++def slow_products(rows, all_skus, min_quantity=1):
+     """SKUs that sold fewer than min_qty units in the period."""
+     sold = defaultdict(int)
+     for row in rows:
+         sold[row["prod_sku"]] += row["qty"]
+-    return sorted(sku for sku in all_skus if sold[sku] < min_qty)
++    return sorted(sku for sku in all_skus if sold[sku] < min_quantity)
+ 
+ 
+ def vat_summary(rows, vat_rate=Decimal("0.19")):
+     """Net, VAT and gross for the period. VAT is rounded once on the total."""
+-    net_tot = sum_amts(row["amt"] for row in rows)
+-    vat_tot = (net_tot * vat_rate)
++    net_total = sum_amounts(row["amt"] for row in rows)
++    vat_total = (net_total * vat_rate)
+     return {
+-        "net": fmt_amt(net_tot),
+-        "vat": fmt_amt(vat_tot),
+-        "gross": fmt_amt(net_tot + Decimal(fmt_amt(vat_tot))),
++        "net": format_amount(net_total),
++        "vat": format_amount(vat_total),
++        "gross": format_amount(net_total + Decimal(format_amount(vat_total))),
+     }
+ 
+ 
+-def overdue_invs(invs, today):
++def overdue_invoices(invoices, today):
+     """Invoices unpaid for more than 30 days (day 30 itself is not overdue)."""
+-    res = []
+-    for inv in invs:
+-        if inv["paid"]:
++    result = []
++    for invoice in invoices:
++        if invoice["paid"]:
+             continue
+-        age_days = (today - inv["inv_dt"]).days
++        age_days = (today - invoice["inv_dt"]).days
+         if age_days > OVERDUE_AFTER_DAYS:
+-            res.append({"inv_id": inv["inv_id"], "cust_id": inv["cust_id"], "age_days": age_days,
+-                        "amt": fmt_amt(inv["amt"])})
+-    res.sort(key=lambda row: row["age_days"], reverse=True)
+-    return res
+-
+-
+-def overdue_by_cust(invs, today):
+-    res = defaultdict(lambda: Decimal("0.00"))
+-    for inv in overdue_invs(invs, today):
+-        res[inv["cust_id"]] += Decimal(inv["amt"])
+-    return {cust_id: fmt_amt(amt) for cust_id, amt in res.items()}
+-
+-
+-def avg_order_amt(rows):
+-    ids = {row["order_id"] for row in rows}
+-    if not ids:
+-        return fmt_amt(0)
+-    return fmt_amt(sum_amts(row["amt"] for row in rows) / len(ids))
+-
+-
+-def avg_units_per_order(rows):
+-    ids = {row["order_id"] for row in rows}
+-    if not ids:
++            result.append({"inv_id": invoice["inv_id"], "cust_id": invoice["cust_id"], "age_days": age_days,
++                        "amt": format_amount(invoice["amt"])})
++    result.sort(key=lambda row: row["age_days"], reverse=True)
++    return result
++
++
++def overdue_by_customer(invoices, today):
++    result = defaultdict(lambda: Decimal("0.00"))
++    for invoice in overdue_invoices(invoices, today):
++        result[invoice["cust_id"]] += Decimal(invoice["amt"])
++    return {customer_id: format_amount(amount) for customer_id, amount in result.items()}
++
++
++def average_order_amount(rows):
++    order_ids = {row["order_id"] for row in rows}
++    if not order_ids:
++        return format_amount(0)
++    return format_amount(sum_amounts(row["amt"] for row in rows) / len(order_ids))
++
++
++def average_units_per_order(rows):
++    order_ids = {row["order_id"] for row in rows}
++    if not order_ids:
+         return 0
+-    return sum(row["qty"] for row in rows) / len(ids)
++    return sum(row["qty"] for row in rows) / len(order_ids)
+ 
+ 
+ def delivery_summary(rows):
+     """Count of orders that paid delivery vs got it free."""
+-    paid_cnt = 0
+-    free_cnt = 0
++    paid_count = 0
++    free_count = 0
+     for row in rows:
+         if Decimal(str(row["delivery_amt"])) > 0:
+-            paid_cnt += 1
++            paid_count += 1
+         else:
+-            free_cnt += 1
+-    return {"paid": paid_cnt, "free": free_cnt}
+-
+-
+-def delivery_amt_tot(rows):
+-    return fmt_amt(sum_amts(row["delivery_amt"] for row in rows))
++            free_count += 1
++    return {"paid": paid_count, "free": free_count}
++
++
++def delivery_amount_total(rows):
++    return format_amount(sum_amounts(row["delivery_amt"] for row in rows))
+ 
+ 
+ def contract_vs_list(rows):
+@@ -187,68 +187,68 @@
+     return {
+         "contract_orders": len({row["order_id"] for row in contract_rows}),
+         "list_orders": len({row["order_id"] for row in list_rows}),
+-        "contract_amt": fmt_amt(sum_amts(row["amt"] for row in contract_rows)),
+-        "list_amt": fmt_amt(sum_amts(row["amt"] for row in list_rows)),
++        "contract_amt": format_amount(sum_amounts(row["amt"] for row in contract_rows)),
++        "list_amt": format_amount(sum_amounts(row["amt"] for row in list_rows)),
+     }
+ 
+ 
+-def month_key(dt):
+-    return f"{dt.year:04d}-{dt.month:02d}"
++def month_key(date):
++    return f"{date.year:04d}-{date.month:02d}"
+ 
+ 
+ def monthly_sales(rows):
+-    res = defaultdict(lambda: Decimal("0.00"))
+-    for row in rows:
+-        res[month_key(row["order_dt"])] += Decimal(str(row["amt"]))
+-    return {key: fmt_amt(amt) for key, amt in sorted(res.items())}
++    result = defaultdict(lambda: Decimal("0.00"))
++    for row in rows:
++        result[month_key(row["order_dt"])] += Decimal(str(row["amt"]))
++    return {key: format_amount(amount) for key, amount in sorted(result.items())}
+ 
+ 
+ def monthly_growth(rows):
+     """Percentage change of net sales from one month to the next."""
+     sales = monthly_sales(rows)
+     keys = sorted(sales)
+-    res = []
+-    for prev_key, key in zip(keys, keys[1:]):
+-        prev_amt = Decimal(sales[prev_key])
+-        amt = Decimal(sales[key])
+-        if prev_amt == 0:
+-            pct = None
++    result = []
++    for previous_key, key in zip(keys, keys[1:]):
++        previous_amount = Decimal(sales[previous_key])
++        amount = Decimal(sales[key])
++        if previous_amount == 0:
++            percent = None
+         else:
+-            pct = ((amt - prev_amt) / prev_amt * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+-        res.append({"month": key, "net": sales[key], "growth_pct": pct})
+-    return res
+-
+-
+-def csv_line(vals):
+-    return ";".join(str(val) for val in vals)
+-
+-
+-def cust_statement_csv(rows, cust_id):
++            percent = ((amount - previous_amount) / previous_amount * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
++        result.append({"month": key, "net": sales[key], "growth_pct": percent})
++    return result
++
++
++def csv_line(values):
++    return ";".join(str(value) for value in values)
++
++
++def customer_statement_csv(rows, customer_id):
+     lines = [csv_line(["order_id", "order_dt", "amt", "run_tot"])]
+-    for entry in cust_statement(rows, cust_id):
++    for entry in customer_statement(rows, customer_id):
+         lines.append(csv_line([entry["order_id"], entry["order_dt"], entry["amt"], entry["run_tot"]]))
+     return "\n".join(lines)
+ 
+ 
+-def top_custs_text(rows, limit=5):
++def top_customers_text(rows, limit=5):
+     lines = []
+-    for pos, entry in enumerate(top_custs(rows, limit), start=1):
+-        lines.append(f"{pos}. customer {entry['cust_id']}: {entry['orders']} orders, "
++    for position, entry in enumerate(top_customers(rows, limit), start=1):
++        lines.append(f"{position}. customer {entry['cust_id']}: {entry['orders']} orders, "
+                      f"{entry['units']} units, {entry['amt']} EUR")
+     return "\n".join(lines)
+ 
+ 
+-def top_prods_text(rows, limit=5):
++def top_products_text(rows, limit=5):
+     lines = []
+-    for pos, entry in enumerate(top_prods(rows, limit), start=1):
+-        lines.append(f"{pos}. {entry['prod_sku']}: {entry['units']} units in "
++    for position, entry in enumerate(top_products(rows, limit), start=1):
++        lines.append(f"{position}. {entry['prod_sku']}: {entry['units']} units in "
+                      f"{entry['orders']} orders, {entry['amt']} EUR")
+     return "\n".join(lines)
+ 
+ 
+-def overdue_text(invs, today):
++def overdue_text(invoices, today):
+     lines = []
+-    for inv in overdue_invs(invs, today):
+-        lines.append(f"invoice {inv['inv_id']} (customer {inv['cust_id']}): "
+-                     f"{inv['amt']} EUR, {inv['age_days']} days old")
++    for invoice in overdue_invoices(invoices, today):
++        lines.append(f"invoice {invoice['inv_id']} (customer {invoice['cust_id']}): "
++                     f"{invoice['amt']} EUR, {invoice['age_days']} days old")
+     return "\n".join(lines) or "nothing overdue"

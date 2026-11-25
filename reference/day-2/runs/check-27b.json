@@ -1,0 +1,398 @@
+{
+ "01-typo-docs": {
+  "secs": 8.3,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This pull request updates the wording in the README and coding standards documentation to improve clarity and accuracy. No source code, tests, or configuration files were modified.",
+   "risk": "low",
+   "risk_reasons": [
+    "Documentation-only changes",
+    "No impact on runtime behavior or system logic"
+   ],
+   "findings": [],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "02-delivery-date-feature": {
+  "secs": 12.2,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "Adds a new module to calculate estimated delivery dates based on working days, supporting standard and express shipping. Includes unit tests covering mid-week, weekend, and edge cases.",
+   "risk": "low",
+   "risk_reasons": [
+    "New module with no changes to existing logic",
+    "No handling of money, authentication, or sensitive data",
+    "Simple date arithmetic with clear boundaries"
+   ],
+   "findings": [
+    {
+     "file": "orders/delivery.py",
+     "line": 1,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The module docstring states that public holidays are ignored. This is a significant business logic limitation that should be explicitly documented in the function docstrings or the module description to prevent developers from assuming the function handles holidays.",
+     "suggested_fix": "Update the docstring for `delivery_date` to explicitly state: 'Note: This calculation ignores public holidays. It only accounts for weekends (Saturday and Sunday).'"
+    }
+   ],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "03-money-rounding": {
+  "secs": 33.4,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "The change adds a 10% bulk discount for order lines with 100 or more pieces and includes basic unit tests. It modifies the pricing logic to apply the discount before the contract discount and changes the rounding behavior.",
+   "risk": "high",
+   "risk_reasons": [
+    "Violates the standard that money must be handled with Decimal, not float",
+    "Changes the rounding behavior from standard quantize to Python's round, which may cause precision issues",
+    "The boundary condition uses 'greater than' instead of 'greater than or equal to' despite the description saying '100 or more'"
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 20,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function returns a float and performs calculations using float arithmetic, violating standard 2 which requires money to be handled with Decimal, never float.",
+     "suggested_fix": "Change the return type to Decimal and perform the calculation using Decimal arithmetic: return unit_price * (Decimal(\"1\") - BULK_DISCOUNT_RATE) if quantity >= BULK_DISCOUNT_FROM else unit_price"
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 22,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The condition uses 'quantity > BULK_DISCOUNT_FROM' (strictly greater than 100), but the description and docstring state '100 pieces or more'. This means an order of exactly 100 pieces will not receive the discount.",
+     "suggested_fix": "Change the condition to 'quantity >= BULK_DISCOUNT_FROM' to match the requirement of '100 or more'."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 31,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The code uses 'round(price * quantity, 2)' which uses Python's banker's rounding, whereas the standard requires rounding to cents with ROUND_HALF_UP. This can lead to inconsistent rounding behavior.",
+     "suggested_fix": "Use 'to_money(price * quantity)' or explicitly use Decimal quantize with ROUND_HALF_UP to maintain consistent rounding behavior."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 30,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The code converts CONTRACT_DISCOUNT to float for the calculation, which violates the standard that money calculations should use Decimal, not float.",
+     "suggested_fix": "Keep the calculation in Decimal: price = price * (Decimal(\"1\") - CONTRACT_DISCOUNT)"
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 4 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "04-security-customer-search": {
+  "secs": 32.2,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "The change adds a customer search endpoint for the support team and updates the mail provider configuration for order confirmations. It introduces a hardcoded API key and a SQL injection vulnerability in the database layer.",
+   "risk": "high",
+   "risk_reasons": [
+    "SQL injection vulnerability in customer search",
+    "Hardcoded secret key in source code",
+    "Logging of personal data (names and emails)"
+   ],
+   "findings": [
+    {
+     "file": "orders/db.py",
+     "line": 31,
+     "severity": "high",
+     "category": "security",
+     "explanation": "The query is built using string concatenation with user input, creating a SQL injection vulnerability. This violates standard 4 (SQL uses parameters).",
+     "suggested_fix": "Use parameterized queries: `conn.execute(\"SELECT id, name, email FROM customers WHERE name LIKE ?\", (f\"%{name_fragment}%\",))`"
+    },
+    {
+     "file": "orders/notifications.py",
+     "line": 6,
+     "severity": "high",
+     "category": "security",
+     "explanation": "A secret API key is hardcoded in the source code. This violates standard 5 (No secrets in code).",
+     "suggested_fix": "Load the key from an environment variable via `config.py`."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 49,
+     "severity": "medium",
+     "category": "security",
+     "explanation": "The code logs customer names and email addresses, which are personal data. This violates standard 6 (Logging carries no personal data).",
+     "suggested_fix": "Log only the customer ID: `log.info(\"support lookup matched customer_id=%s\", row[0])`"
+    },
+    {
+     "file": "orders/api.py",
+     "line": 45,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The function does not validate the `name_fragment` input at the edge. Standard 3 requires validation of external inputs.",
+     "suggested_fix": "Add validation to ensure `name_fragment` is a string and meets any length or character requirements."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[block] an added line looks like a hard-coded secret",
+   "[block] an added line looks like SQL built from strings",
+   "[human_review] code changed but no test file changed",
+   "[block] the model reported a security finding",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 4 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "05-rename-reports": {
+  "secs": 127.2,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This change renames abbreviated variables and functions in orders/export.py to full words (e.g., cust to customer, amt to amount) to comply with naming standards. The diff confirms the changes are strictly mechanical with no logic or behavior modifications. | This change renames abbreviated variables and functions in reports.py to full words (e.g., cust to customer, amt to amount) as part of a cleanup. However, it also silently removes the ROUND_HALF_UP rounding argument from the format_amount function, changing the default rounding behavior for all monetary outputs.",
+   "risk": "medium",
+   "risk_reasons": [
+    "Purely mechanical renaming with no logic changes",
+    "No new dependencies or security-sensitive code introduced",
+    "Silent behavior change in rounding logic",
+    "PR description claims 'no behaviour change' but rounding is altered"
+   ],
+   "findings": [
+    {
+     "file": "orders/export.py",
+     "line": 11,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `format_amount` is missing type hints, which violates standard 10 requiring typed signatures for public functions.",
+     "suggested_fix": "Add type hints, e.g., `def format_amount(amount: Decimal) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 15,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `escape` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def escape(value: Any) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 23,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `invoice_row` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def invoice_row(invoice: dict) -> list:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 28,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `invoice_line` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def invoice_line(invoice: dict) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 32,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `export_invoices` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def export_invoices(invoices: list[dict]) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 39,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `export_invoices_for_customer` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def export_invoices_for_customer(invoices: list[dict], customer_id: str) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 43,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `export_invoices_between` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def export_invoices_between(invoices: list[dict], first_date: datetime, last_date: datetime) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 49,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `check_invoice` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def check_invoice(invoice: dict) -> list[str]:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 65,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `check_invoices` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def check_invoices(invoices: list[dict]) -> dict[str, list[str]]:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 73,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `split_valid` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def split_valid(invoices: list[dict]) -> tuple[list[dict], list[dict]]:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 83,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `total_row` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def total_row(invoices: list[dict]) -> list:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 93,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `export_with_total` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def export_with_total(invoices: list[dict]) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 98,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `customer_total_rows` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def customer_total_rows(invoices: list[dict]) -> list[list]:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 107,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `export_customer_totals` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def export_customer_totals(invoices: list[dict]) -> str:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 114,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `parse_amount` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def parse_amount(text: str) -> Decimal:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 121,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `parse_line` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def parse_line(line: str) -> dict:`"
+    },
+    {
+     "file": "orders/export.py",
+     "line": 128,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The function `parse_export` is missing type hints, violating standard 10.",
+     "suggested_fix": "Add type hints, e.g., `def parse_export(text: str) -> list[dict]:`"
+    },
+    {
+     "file": "orders/reports.py",
+     "line": 13,
+     "severity": "high",
+     "category": "regression",
+     "explanation": "The function `format_amount` was changed from `Decimal(str(amount)).quantize(CENT, rounding=ROUND_HALF_UP)` to `Decimal(str(amount)).quantize(CENT)`. The default rounding mode for `Decimal.quantize` is `ROUND_HALF_EVEN`, not `ROUND_HALF_UP`. This violates Standard 2 (Money is Decimal... round to cents with ROUND_HALF_UP) and changes the financial output for values where the third decimal is exactly 5 (e.g., 1.005 will now round to 1.00 instead of 1.01). This is a behavior change not mentioned in the PR description.",
+     "suggested_fix": "Restore the rounding argument: `return str(Decimal(str(amount)).quantize(CENT, rounding=ROUND_HALF_UP))`"
+    }
+   ],
+   "recommendation": "block",
+   "incomplete": false
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 1 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 23.0,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "Adds a refund capability by introducing a `refund` function in `payments.py` and a `refund_order` handler in `api.py`. The handler validates the order exists and calls the payment gateway to process the refund.",
+   "risk": "high",
+   "risk_reasons": [
+    "Missing authorization check allows any customer to refund any order",
+    "No input validation for the refund amount",
+    "Missing tests for the new payment logic"
+   ],
+   "findings": [
+    {
+     "file": "orders/api.py",
+     "line": 48,
+     "severity": "high",
+     "category": "security",
+     "explanation": "The `refund_order` function is missing an authorization check. Unlike the existing `get_order` function, it does not verify that the requesting user is an admin or the owner of the order. This allows any authenticated user to refund any order ID, leading to financial loss.",
+     "suggested_fix": "Add an authorization check similar to `get_order`: `if row[1] != user.get(\"customer_id\") and not is_admin(user): raise ValidationError(\"not your order\")`."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 47,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function signature is missing the `user` parameter required for authorization checks, and the `amount` parameter is not validated. Standard 3 requires validating input at the edge (e.g., ensuring amount is positive and does not exceed the order total).",
+     "suggested_fix": "Add `user: dict` to the signature and validate that `amount` is a positive `Decimal` and less than or equal to the order's gross amount."
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 35,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard 9 requires tests for changes to `payments`. No tests are included in the diff for the new `refund` function or the `refund_order` handler.",
+     "suggested_fix": "Add unit tests for `payments.refund` and `api.refund_order` covering success, failure, and edge cases."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[block] the model reported a security finding",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

@@ -1,0 +1,7 @@
+--- Answer ---
+The maximum stud spacing for a standard single-layer plasterboard partition is 600 mm between centres [plasterboard_installation_guide.md]. However, the fire protection FAQ notes that the general maximum stud spacing for all partitions is 625 mm to allow for fixing at edges and middle [fire_protection_faq.md].
+
+--- Documents mentioned in the answer ---
+  fire_protection_faq.md, plasterboard_installation_guide.md
+
+Time 1.5s | prompt+answer ~5,188 tokens (rough: characters / 4) | 8 documents, 19,983 characters sent

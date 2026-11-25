@@ -1,0 +1,42 @@
+diff --git a/orders/api.py b/orders/api.py
+--- a/orders/api.py
++++ b/orders/api.py
+@@ -2,7 +2,9 @@
+ import logging
+ import re
+ 
+-from orders import db
++from decimal import Decimal
++
++from orders import db, payments
+ from orders.auth import is_admin
+ from orders.errors import ValidationError
+ from orders.pricing import price_order
+@@ -41,3 +43,13 @@
+     if row[1] != user.get("customer_id") and not is_admin(user):
+         raise ValidationError("not your order")
+     return {"id": row[0], "customer_id": row[1], "gross": row[2]}
++
++
++def refund_order(conn, order_id: str, amount: Decimal) -> str:
++    """Refund an order from the customer service screen."""
++    row = db.get_order(conn, order_id)
++    if row is None:
++        raise ValidationError(f"unknown order {order_id}")
++    refund_id = payments.refund(order_id, amount)
++    log.info("refund done order=%s refund=%s", order_id, refund_id)
++    return refund_id
+diff --git a/orders/payments.py b/orders/payments.py
+--- a/orders/payments.py
++++ b/orders/payments.py
+@@ -29,3 +29,10 @@
+     reply = _post("/charges", {"order_id": order_id, "amount": str(amount), "currency": "EUR"})
+     log.info("charged order=%s", order_id)
+     return reply["payment_id"]
++
++
++def refund(order_id: str, amount: Decimal) -> str:
++    """Refund part or all of an order, in EUR. Returns the gateway refund id."""
++    reply = _post("/refunds", {"order_id": order_id, "amount": str(amount), "currency": "EUR"})
++    log.info("refunded order=%s amount=%s", order_id, amount)
++    return reply["refund_id"]

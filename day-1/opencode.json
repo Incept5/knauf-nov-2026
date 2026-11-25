@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "incept5": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Incept5 cluster (qwen3.6-35b)",
+      "options": {
+        "baseURL": "https://inference.incept5.com/v1",
+        "apiKey": "{env:INCEPT5_API_KEY}"
+      },
+      "models": {
+        "qwen3.6-35b": {
+          "name": "Qwen3.6 35B"
+        }
+      }
+    }
+  },
+  "model": "incept5/qwen3.6-35b"
+}

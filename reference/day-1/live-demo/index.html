@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delivery tracker</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c2531;--mute:#606c7b;--line:#dce1e7;--late:#c0392b;--today:#b7791f;--done:#2f855a;--next:#2b6cb0}
+@media (prefers-color-scheme:dark){:root{--bg:#12161b;--card:#1b2129;--ink:#e8edf2;--mute:#9aa7b5;--line:#2e3743;--late:#ef6a5b;--today:#e2a845;--done:#59c08a;--next:#6aaaf0}}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:1.4rem;margin:0}
+form,.item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0}
+form{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+label{font-size:.82rem;color:var(--mute);display:flex;flex-direction:column;gap:3px}
+input,button{font:inherit;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-width:0}
+button{cursor:pointer} button.primary{background:var(--next);border-color:var(--next);color:#fff;align-self:end}
+#err{color:var(--late);grid-column:1/-1;font-weight:600} #err:empty{display:none}
+#counts{display:flex;gap:8px;flex-wrap:wrap}
+.pill{border-radius:99px;padding:3px 10px;font-size:.85rem;border:1.5px solid currentColor;font-weight:600}
+.item{display:grid;grid-template-columns:1fr auto;gap:6px 12px;border-left:6px solid var(--c)}
+.late{--c:var(--late)} .today{--c:var(--today)} .delivered{--c:var(--done)} .upcoming{--c:var(--next)}
+.t{font-weight:600} .m{color:var(--mute);font-size:.9rem} .s{color:var(--c);font-weight:700;text-align:right}
+.w{grid-column:1/-1;font-size:.88rem} .b{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+#note{color:var(--mute);font-size:.85rem}
+@media (max-width:640px){form{grid-template-columns:1fr}.wrap{padding:10px}button{min-height:44px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1 data-t="title"></h1><button id="lang" type="button"></button></header>
+  <form id="f" novalidate>
+    <label><span data-t="supplier"></span><input name="supplier" autocomplete="off"></label>
+    <label><span data-t="material"></span><input name="material" list="materials" autocomplete="off"></label>
+    <label><span data-t="qty"></span><input name="qty" type="number" min="1" inputmode="numeric"></label>
+    <label><span data-t="expected"></span><input name="expected" type="date"></label>
+    <label><span data-t="site"></span><input name="site" autocomplete="off"></label>
+    <button class="primary" data-t="add"></button>
+    <div id="err" role="alert"></div>
+    <datalist id="materials"><option>Plasterboard 12.5 mm<option>Plasterboard 15 mm fire-rated<option>Jointing compound 25 kg<option>Mineral wool 100 mm</datalist>
+  </form>
+  <div id="counts"></div>
+  <div id="list"></div>
+  <p id="note"></p>
+</div>
+<script>
+const L = {
+ en:{locale:"en-GB",title:"Delivery tracker",supplier:"Supplier",material:"Material",qty:"Quantity",expected:"Expected date",site:"Site",add:"Log delivery",
+     late:"Late",today:"Due today",upcoming:"Upcoming",delivered:"Delivered",mark:"Mark delivered",undo:"Undo",del:"Delete",confirm:"Delete this delivery?",empty:"No deliveries yet.",
+     rain:"rain",wind:"wind",ok:"workable",bad:"check weather: not workable",last_year:"no live forecast: last year's weather for this date",live:"live: Open-Meteo",
+     offline:"No live weather for some dates (offline, blocked, or more than 16 days ahead). Those show 2025 values for the same date: NOT a forecast.",server:"Cannot reach the server.",
+     missing_supplier:"Enter a supplier.",missing_material:"Enter a material.",missing_site:"Enter a site.",bad_qty:"Quantity must be a whole number above 0.",missing_date:"Enter the expected date.",bad_date:"That date is not valid.",bad_request:"The request was not understood.",on:"on"},
+ de:{locale:"de-DE",title:"Lieferverfolgung",supplier:"Lieferant",material:"Material",qty:"Menge",expected:"Liefertermin",site:"Baustelle",add:"Lieferung erfassen",
+     late:"Verspätet",today:"Heute fällig",upcoming:"Geplant",delivered:"Geliefert",mark:"Als geliefert markieren",undo:"Rückgängig",del:"Löschen",confirm:"Diese Lieferung löschen?",empty:"Noch keine Lieferungen.",
+     rain:"Regen",wind:"Wind",ok:"arbeitsfähig",bad:"Wetter prüfen: nicht arbeitsfähig",last_year:"keine Live-Vorhersage: Vorjahreswetter für dieses Datum",live:"live: Open-Meteo",
+     offline:"Für einige Tage kein Live-Wetter (offline, blockiert oder mehr als 16 Tage im Voraus). Dort stehen die Werte von 2025: KEINE Vorhersage.",server:"Server nicht erreichbar.",
+     missing_supplier:"Bitte Lieferant eingeben.",missing_material:"Bitte Material eingeben.",missing_site:"Bitte Baustelle eingeben.",bad_qty:"Die Menge muss eine ganze Zahl über 0 sein.",missing_date:"Bitte Liefertermin eingeben.",bad_date:"Dieses Datum ist ungültig.",bad_request:"Die Anfrage wurde nicht verstanden.",on:"am"}
+};
+const store = {get(){ try { return localStorage.getItem("lang"); } catch (e) { return null; } }, set(v){ try { localStorage.setItem("lang", v); } catch (e) {} }};
+let lang = store.get() || ((navigator.language || "").startsWith("de") ? "de" : "en"), data = null, errCode = "";
+const $ = s => document.querySelector(s), T = () => L[lang];
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };  // textContent: user input is never HTML
+const date = iso => new Date(iso + "T12:00:00").toLocaleDateString(T().locale, {weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"});
+const num = n => n.toLocaleString(T().locale);
+
+function render(){
+  const t = T(); document.documentElement.lang = lang; document.title = t.title;
+  document.querySelectorAll("[data-t]").forEach(e => e.textContent = t[e.dataset.t]);
+  $("#lang").textContent = lang === "en" ? "Deutsch" : "English";
+  $("#err").textContent = errCode ? (t[errCode] || errCode) : "";
+  if (!data) return;
+  const counts = $("#counts"); counts.replaceChildren();
+  ["late","today","upcoming","delivered"].forEach(s => { const p = el("span", "pill " + s, `${t[s]}: ${data.deliveries.filter(d => d.status === s).length}`); p.style.color = "var(--c)"; counts.append(p); });
+  const list = $("#list"); list.replaceChildren();
+  if (!data.deliveries.length) list.append(el("p", "m", t.empty));
+  let fallback = false;
+  data.deliveries.forEach(d => {
+    const item = el("div", "item " + d.status), left = el("div");
+    left.append(el("div", "t", `${num(d.qty)} × ${d.material}`), el("div", "m", `${d.supplier} → ${d.site}`), el("div", "m", date(d.expected)));
+    item.append(left, el("div", "s", t[d.status] + (d.delivered_on ? ` ${t.on} ${date(d.delivered_on)}` : "")));
+    const w = data.weather[d.expected];
+    if (w){ if (w.source !== "live") fallback = true;
+      item.append(el("div", "w", `${w.workable ? "☀️" : "⚠️"} ${num(w.tmin)} / ${num(w.tmax)} °C · ${t.rain} ${num(w.rain)} mm · ${t.wind} ${num(w.wind)} km/h · ${w.workable ? t.ok : t.bad} (${t[w.source]})`)); }
+    const bar = el("div", "b"), btn = (label, action, ask) => { const b = el("button", "", label); b.type = "button";
+      b.onclick = async () => { if (ask && !confirm(ask)) return; await call(`/api/deliveries/${d.id}/${action}`, {}); load(); }; bar.append(b); };
+    d.status === "delivered" ? btn(t.undo, "undo") : btn(t.mark, "delivered"); btn(t.del, "delete", t.confirm);
+    item.append(bar); list.append(item);
+  });
+  $("#note").textContent = fallback ? t.offline : "";
+}
+async function call(url, body){
+  try { return await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}); }
+  catch (e) { errCode = "server"; render(); return null; }
+}
+async function load(){
+  try { data = await (await fetch("/api/deliveries")).json(); if (errCode === "server") errCode = ""; } catch (e) { errCode = "server"; }
+  render();
+}
+$("#f").onsubmit = async e => { e.preventDefault(); const f = e.target, r = await call("/api/deliveries", Object.fromEntries(new FormData(f)));
+  if (!r) return;
+  if (r.ok){ errCode = ""; f.reset(); load(); } else { errCode = (await r.json()).error; render(); } };
+$("#lang").onclick = () => { lang = lang === "en" ? "de" : "en"; store.set(lang); render(); };
+render(); load(); setInterval(load, 60000);
+</script>
+</body>
+</html>

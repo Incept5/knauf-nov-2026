@@ -1,0 +1,253 @@
+{
+ "01-typo-docs": {
+  "secs": 5.3,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This pull request updates the wording in the README and coding standards documentation to improve clarity and accuracy. It clarifies that the payment gateway is fictional, specifies the working directory for running tests, and adjusts the tense regarding the cleanup of old abbreviations.",
+   "risk": "low",
+   "risk_reasons": [
+    "Documentation-only changes",
+    "No code or logic modifications"
+   ],
+   "findings": [],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "02-delivery-date-feature": {
+  "secs": 10.0,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "Adds a new module to calculate estimated delivery dates based on working days, supporting standard and express shipping. Includes unit tests covering mid-week, weekend, and edge cases.",
+   "risk": "low",
+   "risk_reasons": [
+    "New module with no changes to existing code",
+    "Logic is simple and well-tested",
+    "No security or data handling concerns"
+   ],
+   "findings": [
+    {
+     "file": "orders/delivery.py",
+     "line": 1,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "The module docstring states that 'public holidays are ignored for now'. This is a significant business logic limitation that should be explicitly documented in the function docstrings or the PR description to avoid confusion about the accuracy of the estimates.",
+     "suggested_fix": "Update the docstrings for `add_working_days` and `delivery_date` to explicitly state that public holidays are not accounted for, or add a note in the PR description."
+    }
+   ],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "03-money-rounding": {
+  "secs": 22.7,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "The change introduces a 10% bulk discount for order lines with 100 or more pieces and adds tests. It modifies the pricing logic to apply the discount to the unit price before calculating the line total.",
+   "risk": "high",
+   "risk_reasons": [
+    "Violates the standard prohibiting the use of floats for money calculations.",
+    "Introduces a boundary condition defect where the discount is not applied at exactly 100 pieces.",
+    "Changes the rounding behavior of the line total calculation."
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 20,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function `bulk_unit_price` returns a `float` and performs calculations using `float` arithmetic. Standard 2 explicitly states that money must be `Decimal` and never `float`.",
+     "suggested_fix": "Change the return type to `Decimal` and perform the calculation using `Decimal` arithmetic (e.g., `unit_price * (Decimal(\"1\") - BULK_DISCOUNT_RATE)`)."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 22,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The condition `if quantity > BULK_DISCOUNT_FROM` uses a strict greater-than comparison. The description and the constant comment specify the discount applies for \"100 pieces or more\". As written, a quantity of exactly 100 will not receive the discount.",
+     "suggested_fix": "Change the condition to `if quantity >= BULK_DISCOUNT_FROM:`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 31,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The line total calculation uses `round(price * quantity, 2)`. Standard 2 requires rounding to cents with `ROUND_HALF_UP` once per line total. Using the built-in `round` function (which uses banker's rounding) and applying it before `to_money` is inconsistent with the standard and the existing `to_money` helper.",
+     "suggested_fix": "Remove the `round(..., 2)` call and rely on `to_money(price * quantity)` to handle the quantization and rounding as intended."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 12,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The constant `BULK_DISCOUNT_RATE` is defined as a float (`0.10`). Standard 2 requires money-related values to be `Decimal`.",
+     "suggested_fix": "Change the definition to `BULK_DISCOUNT_RATE = Decimal(\"0.10\")`."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 4 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "04-security-customer-search": {
+  "secs": 23.8,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "The change adds a customer search endpoint for the support team and updates the notification module to use a new mail provider. It introduces a SQL injection vulnerability in the database layer and hardcodes a secret key in the source code.",
+   "risk": "high",
+   "risk_reasons": [
+    "SQL injection vulnerability in customer search",
+    "Hardcoded secret key in source code",
+    "Logging of personal data (names and emails)"
+   ],
+   "findings": [
+    {
+     "file": "orders/db.py",
+     "line": 31,
+     "severity": "high",
+     "category": "security",
+     "explanation": "The query is built using string concatenation with user input, creating a SQL injection vulnerability. This violates standard 4 (SQL uses parameters).",
+     "suggested_fix": "Use parameterized queries: `conn.execute(\"SELECT id, name, email FROM customers WHERE name LIKE ?\", (f\"%{name_fragment}%\",))`"
+    },
+    {
+     "file": "orders/notifications.py",
+     "line": 6,
+     "severity": "high",
+     "category": "security",
+     "explanation": "A secret API key is hardcoded in the source code. This violates standard 5 (No secrets in code).",
+     "suggested_fix": "Load the key from an environment variable via `config.py`."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 49,
+     "severity": "medium",
+     "category": "security",
+     "explanation": "The log statement records customer names and email addresses, which are personal data. This violates standard 6 (Logging carries no personal data).",
+     "suggested_fix": "Log only the customer ID: `log.info(\"support lookup matched customer_id=%s\", row[0])`"
+    },
+    {
+     "file": "orders/notifications.py",
+     "line": 22,
+     "severity": "medium",
+     "category": "security",
+     "explanation": "The debug log includes the Authorization header containing the secret key. This violates standard 5 and 6.",
+     "suggested_fix": "Remove the headers from the log statement or mask the key."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[block] an added line looks like a hard-coded secret",
+   "[block] an added line looks like SQL built from strings",
+   "[human_review] code changed but no test file changed",
+   "[block] the model reported a security finding",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 4 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "05-rename-reports": {
+  "secs": 31.1,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This change renames abbreviated variables and functions in orders/export.py to full words (e.g., cust to customer, amt to amount) to comply with naming standards. The diff confirms the changes are purely mechanical with no logic or behavior modifications. | This change renames abbreviated variables and functions in reports.py to full words (e.g., cust to customer, amt to amount) as part of a cleanup. However, it also silently removes the ROUND_HALF_UP rounding argument from the format_amount function, changing the default rounding behavior.",
+   "risk": "medium",
+   "risk_reasons": [
+    "Purely mechanical renaming of local variables and function names",
+    "No changes to business logic, data structures, or external interfaces",
+    "Silent behavior change in rounding logic",
+    "Mismatch between PR description and actual diff"
+   ],
+   "findings": [
+    {
+     "file": "orders/reports.py",
+     "line": 13,
+     "severity": "high",
+     "category": "regression",
+     "explanation": "The function `format_amount` was changed from `Decimal(str(amt)).quantize(CENT, rounding=ROUND_HALF_UP)` to `Decimal(str(amount)).quantize(CENT)`. This removes the explicit `ROUND_HALF_UP` rounding mode, causing the function to use the default `ROUND_HALF_EVEN` (banker's rounding). This violates Standard 2 (Money is Decimal... round to cents with ROUND_HALF_UP) and contradicts the function's docstring which states 'halves round up'. This is a behavior change not mentioned in the PR description.",
+     "suggested_fix": "Restore the rounding argument: `return str(Decimal(str(amount)).quantize(CENT, rounding=ROUND_HALF_UP))`"
+    }
+   ],
+   "recommendation": "block",
+   "incomplete": false
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 1 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 18.6,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This change adds a `refund` function to `payments.py` and a `refund_order` handler in `api.py` to process customer service refunds. It reuses the existing payment gateway logic to send the refund amount as a string.",
+   "risk": "medium",
+   "risk_reasons": [
+    "Missing input validation for the refund amount in the API layer",
+    "No tests provided for the new payment logic",
+    "Potential for double-refunding or over-refunding if not handled in the database layer"
+   ],
+   "findings": [
+    {
+     "file": "orders/api.py",
+     "line": 47,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The `refund_order` function accepts a `Decimal` amount but does not validate it. Standard 3 requires validating input at the edge (api.py). The amount should be checked to ensure it is a valid positive number and does not exceed the order's gross total.",
+     "suggested_fix": "Add validation to ensure `amount` is a positive `Decimal` and `amount <= row[2]` (the order's gross total)."
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 36,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The `refund` function logs the `amount` directly. While `Decimal` is not personal data, standard 6 emphasizes logging only IDs. More importantly, standard 9 requires tests for changes to `payments`. No tests are included in this diff.",
+     "suggested_fix": "Add unit tests for the `refund` function in `payments.py` and ensure the log message only contains the `order_id` and `refund_id` to be consistent with the existing `charge` function."
+    }
+   ],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 2 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

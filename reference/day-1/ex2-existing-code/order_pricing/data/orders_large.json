@@ -1,0 +1,5 @@
+[
+  {"id": "L-2001", "items": [{"sku": "PB-150", "qty": 200}]},
+  {"id": "L-2002", "contract": true, "items": [{"sku": "PB-150", "qty": 200}]},
+  {"id": "L-2003", "items": [{"sku": "INS-100", "qty": 300}]}
+]

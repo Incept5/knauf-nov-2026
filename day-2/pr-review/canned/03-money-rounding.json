@@ -1,0 +1,28 @@
+{
+  "_label": "CANNED EXAMPLE written by the workshop team. Not real model output.",
+  "summary": "Adds a 10% bulk discount to line_total and converts the unit price to float for the calculation. Adds two tests.",
+  "risk": "high",
+  "risk_reasons": [
+    "pricing path",
+    "money is calculated with float"
+  ],
+  "findings": [
+    {
+      "file": "orders/pricing.py",
+      "line": 22,
+      "severity": "high",
+      "category": "standards",
+      "explanation": "Currency is converted to float and multiplied by a float rate (standard 2). Results can differ by a cent from the Decimal calculation, and round() on a float does not round halves up.",
+      "suggested_fix": "Keep Decimal: Decimal('0.10'), unit_price * (1 - rate), and to_money() once at the end."
+    },
+    {
+      "file": "orders/pricing.py",
+      "line": 33,
+      "severity": "medium",
+      "category": "defect",
+      "explanation": "round(price * quantity, 2) rounds a float first and only then converts to Decimal, so to_money() receives an already-wrong value.",
+      "suggested_fix": "Return to_money(price * quantity) with Decimal operands."
+    }
+  ],
+  "recommendation": "needs_human_review"
+}

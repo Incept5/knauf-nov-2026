@@ -1,0 +1,84 @@
+{
+ "03-money-rounding": {
+  "secs": 43.3,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This change introduces a 10% bulk discount for order lines with 100 or more pieces and updates the line total calculation to apply it. It also modifies the contract discount logic and adds tests for the new bulk pricing behavior.",
+   "risk": "high",
+   "risk_reasons": [
+    "Use of float for monetary calculations violates standards and causes precision errors",
+    "Boundary condition for bulk discount is inconsistent between code and documentation",
+    "Rounding logic is applied at the wrong stage, potentially causing incorrect totals"
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 11,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "BULK_DISCOUNT_FROM is defined as an integer 100, but the standard requires money-related constants to be Decimal. While this is a quantity, the inconsistency with other constants and the use of float in the function is problematic.",
+     "suggested_fix": "Keep as int if it is a quantity, but ensure the function uses Decimal arithmetic."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 12,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "BULK_DISCOUNT_RATE is defined as a float 0.10. Standard 2 explicitly states 'Money is Decimal, never float'.",
+     "suggested_fix": "Change to BULK_DISCOUNT_RATE = Decimal(\"0.10\")"
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 20,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function signature returns float, and the implementation converts unit_price to float. This violates Standard 2 (Money is Decimal, never float).",
+     "suggested_fix": "Change return type to Decimal and use Decimal arithmetic: price = unit_price; if quantity >= BULK_DISCOUNT_FROM: price = price * (Decimal(\"1\") - BULK_DISCOUNT_RATE); return price"
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 21,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The docstring says '100 pieces or more' (inclusive), but the code uses 'quantity > BULK_DISCOUNT_FROM' (exclusive). This is a boundary condition mismatch. Standard 8 requires the docstring to match the code and tests to check the limit.",
+     "suggested_fix": "Change condition to 'if quantity >= BULK_DISCOUNT_FROM:' to match the docstring, or update docstring to 'more than 100 pieces'."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 29,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The code uses 'float(CONTRACT_DISCOUNT)' which converts a Decimal to float. This violates Standard 2. The original code used Decimal arithmetic correctly.",
+     "suggested_fix": "Change to 'price = price * (Decimal(\"1\") - CONTRACT_DISCOUNT)'"
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 30,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The code uses 'round(price * quantity, 2)' which is a float rounding function. Standard 2 requires rounding with ROUND_HALF_UP using Decimal. The original code used 'to_money' which does this correctly. This change breaks the rounding standard.",
+     "suggested_fix": "Change to 'return to_money(price * quantity)'"
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 10,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The test expects Decimal(\"1800.00\") for 200 pieces at 10.00 with 10% discount. 10.00 * 0.9 * 200 = 1800.00. However, due to the float conversion and boundary issue, this test may pass for the wrong reasons or fail in production due to precision errors. The test does not check the boundary case (100 pieces).",
+     "suggested_fix": "Add a test for exactly 100 pieces to verify the boundary condition, and ensure the implementation uses Decimal."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 7 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

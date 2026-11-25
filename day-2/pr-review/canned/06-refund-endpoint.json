@@ -1,0 +1,37 @@
+{
+  "_label": "CANNED EXAMPLE written by the workshop team. Not real model output.",
+  "summary": "Adds payments.refund and api.refund_order so customer service can refund an order through the gateway.",
+  "risk": "high",
+  "risk_reasons": [
+    "moves money",
+    "no tests",
+    "no permission check"
+  ],
+  "findings": [
+    {
+      "file": "orders/api.py",
+      "line": 48,
+      "severity": "high",
+      "category": "defect",
+      "explanation": "refund_order does not check that the amount is above zero or no more than the order's gross total, so an order can be over-refunded.",
+      "suggested_fix": "Validate 0 < amount <= gross and track what has already been refunded."
+    },
+    {
+      "file": "orders/api.py",
+      "line": 48,
+      "severity": "high",
+      "category": "defect",
+      "explanation": "Nothing checks who is calling. Other handlers use is_admin; a refund should be limited to authorised staff.",
+      "suggested_fix": "Pass the user in and require is_admin(user)."
+    },
+    {
+      "file": "orders/payments.py",
+      "line": 34,
+      "severity": "medium",
+      "category": "standards",
+      "explanation": "No tests were added for a payment path (standard 9).",
+      "suggested_fix": "Add tests with the gateway call mocked."
+    }
+  ],
+  "recommendation": "needs_human_review"
+}

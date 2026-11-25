@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Munich 2025: which days could we work outside?</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b2430;--mute:#5f6b7a;--line:#dde2e8;--warm:#d9622b;--cold:#2b6cb0;--bad:#c0392b;--badbg:rgba(192,57,43,.16);--ok:#2f855a;--acc:#1f4e79}
+@media (prefers-color-scheme:dark){:root{--bg:#12161b;--card:#1b2129;--ink:#e8edf2;--mute:#9aa7b5;--line:#2d3641;--warm:#f0935f;--cold:#6aaaf0;--bad:#ef6a5b;--badbg:rgba(239,106,91,.2);--ok:#59c08a;--acc:#8ec0ee}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:0 0 2px}
+.sub{color:var(--mute);margin:0 0 14px;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:1rem;margin:0 0 8px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+label{font-size:.9rem;color:var(--mute);display:flex;gap:6px;align-items:center}
+select,button,input[type=file]{max-width:100%;font:inherit;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button{cursor:pointer;background:var(--acc);color:#fff;border-color:var(--acc)}
+.toggle{color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--bg);border-radius:8px;padding:8px 10px}
+.kpi b{display:block;font-size:1.4rem}
+.kpi span{font-size:.78rem;color:var(--mute)}
+svg{width:100%;height:auto;display:block;touch-action:pan-y}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--mute);margin-top:6px}
+.sw{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:600;font-size:.8rem}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:10px;background:var(--badbg);border-radius:5px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--ok)}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:.8rem;display:none;z-index:5;max-width:230px}
+.ask{display:flex;gap:8px;flex-wrap:wrap}
+.ask input[type=text]{flex:1;min-width:180px;font:inherit;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+#answer{white-space:pre-wrap;margin-top:8px;color:var(--ink)}
+.note{color:var(--mute);font-size:.82rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:700px){.kpis{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">Munich 2025: which days could we work outside?</h1>
+  <p class="sub" id="sub"></p>
+
+  <div class="card controls">
+    <label>From <select id="mFrom"></select></label>
+    <label>to <select id="mTo"></select></label>
+    <label class="toggle"><input type="checkbox" id="onlyOk"> <span id="lblOk">Workable days only</span></label>
+    <label style="margin-left:auto"><span id="lblFile">Other CSV:</span> <input type="file" id="file" accept=".csv,text/csv"></label>
+  </div>
+
+  <div class="card"><div class="kpis" id="kpis"></div><p class="note" id="rule"></p></div>
+
+  <div class="card">
+    <h2 id="hChart">Daily temperature</h2>
+    <svg id="chart" viewBox="0 0 900 340" role="img" aria-label="Daily temperature chart"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="two">
+    <div class="card"><h2 id="hMonth">Workable days per month</h2><table id="months"></table></div>
+    <div class="card"><h2 id="hWeeks">Five worst weeks</h2><table id="weeks"></table><p class="note" id="weekNote"></p></div>
+  </div>
+
+  <div class="card">
+    <h2 id="hAsk">Ask the data</h2>
+    <div class="ask"><input type="text" id="q" value="Should we pour concrete on Friday?"><button id="askBtn">Ask</button></div>
+    <div id="answer" class="note"></div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<!-- CORE: pure logic, no DOM. The Node test (verify_dashboard.js) evaluates exactly this block. -->
+<script id="core">
+const RULE = {rain: 2, wind: 40, tmin: 0};       // workable = rain < 2 mm AND wind < 40 km/h AND temp_min > 0
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/), head = lines.shift().split(",").map(s => s.trim());
+  return lines.filter(l => l.trim()).map(l => { const c = l.split(","), o = {};
+    head.forEach((h,i) => o[h] = h === "date" ? c[i].trim() : parseFloat(c[i])); return o; });
+}
+function classify(r){                              // list of the reasons a day is NOT workable (empty = workable)
+  const why = [];
+  if (r.rain_mm >= RULE.rain) why.push("rain");
+  if (r.wind_max_kmh >= RULE.wind) why.push("wind");
+  if (r.temp_min_c <= RULE.tmin) why.push("frost");
+  return why;
+}
+function dayOfWeek(iso){ const [y,m,d] = iso.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).getUTCDay(); } // 0=Sun
+function addDays(iso,n){ const [y,m,d] = iso.split("-").map(Number); return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10); }
+function prepare(rows){ return rows.map(r => Object.assign({}, r, {why: classify(r), month: +r.date.slice(5,7)})); }
+function inRange(rows, m1, m2){ return rows.filter(r => r.month >= m1 && r.month <= m2); }
+function monthly(rows){                            // [{month, days, ok, bad}]
+  const out = {};
+  rows.forEach(r => { const o = out[r.month] || (out[r.month] = {month:r.month, days:0, ok:0, bad:0});
+    o.days++; r.why.length ? o.bad++ : o.ok++; });
+  return Object.values(out).sort((a,b) => a.month - b.month);
+}
+// WORST WEEK = a full calendar week (Monday to Sunday, all 7 days inside the selected range) with the most unworkable days.
+// Ties are broken by total rain (mm), then by the lowest minimum temperature. Partial weeks at the edges are ignored.
+function worstWeeks(rows, n = 5){
+  const byDate = new Map(rows.map(r => [r.date, r])), weeks = [];
+  rows.forEach(r => { if (dayOfWeek(r.date) !== 1) return;            // start on Mondays
+    const days = []; for (let i = 0; i < 7; i++){ const d = byDate.get(addDays(r.date, i)); if (!d) return; days.push(d); }
+    weeks.push({start:r.date, end:days[6].date, bad:days.filter(d => d.why.length).length,
+      rain:+days.reduce((s,d) => s + d.rain_mm, 0).toFixed(1), tmin:Math.min(...days.map(d => d.temp_min_c))}); });
+  weeks.sort((a,b) => b.bad - a.bad || b.rain - a.rain || a.tmin - b.tmin || (a.start < b.start ? -1 : 1));
+  return weeks.slice(0, n);
+}
+function summary(rows){
+  const bad = rows.filter(r => r.why.length), c = k => rows.filter(r => r.why.includes(k)).length;
+  return {days:rows.length, ok:rows.length - bad.length, bad:bad.length, rain:c("rain"), wind:c("wind"), frost:c("frost")};
+}
+if (typeof module !== "undefined") module.exports = {parseCSV, classify, prepare, inRange, monthly, worstWeeks, summary};
+</script>
+
+<script>
+/*DATA_MARKER*/
+const EMBEDDED_CSV = `__CSV__`;
+</script>
+<script>
+const L = {
+ en:{title:"Munich 2025: which days could we work outside?",from:"From",to:"to",ok:"Workable days only",file:"Other CSV:",chart:"Daily temperature",
+  month:"Workable days per month",weeks:"Five worst weeks",ask:"Ask the data",askBtn:"Ask",days:"days in range",workable:"workable",bad:"unworkable",pct:"unworkable %",
+  rule:"Workable = rain < 2 mm, wind < 40 km/h and minimum temperature above 0 °C. Unworkable days: rain %r, wind %w, frost %f (a day can have several reasons).",
+  tmax:"Daily maximum",tmin:"Daily minimum",badDay:"Unworkable day",wk:"Week",badc:"Bad days",rainc:"Rain mm",weekNote:"Worst week = a full Monday–Sunday week with the most unworkable days; ties broken by rain.",
+  reason:{rain:"rain",wind:"wind",frost:"frost"},workableTip:"workable",mo:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  sub:"%n days, from %a to %b. Select a range, tap the chart for a day.",needServer:"Start ask_server.py (python3 ask_server.py) and open http://localhost:8770 to use this box.",thinking:"Thinking...",ph:"Month"},
+ de:{title:"München 2025: An welchen Tagen konnten wir draußen arbeiten?",from:"Von",to:"bis",ok:"Nur Arbeitstage",file:"Andere CSV:",chart:"Tagestemperatur",
+  month:"Arbeitstage pro Monat",weeks:"Fünf schlechteste Wochen",ask:"Frag die Daten",askBtn:"Fragen",days:"Tage im Zeitraum",workable:"arbeitsfähig",bad:"nicht arbeitsfähig",pct:"% nicht arbeitsfähig",
+  rule:"Arbeitsfähig = Regen < 2 mm, Wind < 40 km/h und Tiefsttemperatur über 0 °C. Nicht arbeitsfähig: Regen %r, Wind %w, Frost %f (ein Tag kann mehrere Gründe haben).",
+  tmax:"Tageshöchstwert",tmin:"Tagestiefstwert",badDay:"Nicht arbeitsfähiger Tag",wk:"Woche",badc:"Schlechte Tage",rainc:"Regen mm",weekNote:"Schlechteste Woche = volle Woche Montag–Sonntag mit den meisten nicht arbeitsfähigen Tagen; bei Gleichstand zählt der Regen.",
+  reason:{rain:"Regen",wind:"Wind",frost:"Frost"},workableTip:"arbeitsfähig",mo:["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"],
+  sub:"%n Tage, von %a bis %b. Zeitraum wählen, für einen Tag das Diagramm antippen.",needServer:"Starte ask_server.py (python3 ask_server.py) und öffne http://localhost:8770, um dieses Feld zu nutzen.",thinking:"Denke nach...",ph:"Monat"}
+};
+let lang = (navigator.language || "en").startsWith("de") ? "de" : "en", ALL = [];
+const $ = id => document.getElementById(id), T = () => L[lang];
+
+function load(csv){ ALL = prepare(parseCSV(csv)); buildSelects(); render(); }
+function buildSelects(){
+  const months = [...new Set(ALL.map(r => r.month))].sort((a,b) => a-b);
+  for (const id of ["mFrom","mTo"]){ const el = $(id), keep = el.value;
+    el.innerHTML = months.map(m => `<option value="${m}">${T().mo[m-1]}</option>`).join("");
+    el.value = keep && months.includes(+keep) ? keep : (id === "mFrom" ? months[0] : months[months.length-1]); }
+}
+function range(){ let a = +$("mFrom").value, b = +$("mTo").value; if (a > b) [a,b] = [b,a]; return [a,b]; }
+
+function render(){
+  const t = T(), [m1,m2] = range(), rows = inRange(ALL, m1, m2), s = summary(rows);
+  document.documentElement.lang = lang; document.title = t.title; $("title").textContent = t.title;
+  $("lblOk").textContent = t.ok; $("lblFile").textContent = t.file; $("hChart").textContent = t.chart; $("hMonth").textContent = t.month;
+  $("hWeeks").textContent = t.weeks; $("hAsk").textContent = t.ask; $("askBtn").textContent = t.askBtn; $("weekNote").textContent = t.weekNote;
+  $("sub").innerHTML = t.sub.replace("%n", rows.length).replace("%a", rows[0] ? rows[0].date : "-").replace("%b", rows.length ? rows[rows.length-1].date : "-") +
+    ` <a href="#" id="langBtn">${lang === "en" ? "Deutsch" : "English"}</a>`;
+  $("langBtn").onclick = e => { e.preventDefault(); lang = lang === "en" ? "de" : "en"; buildSelects(); render(); };
+  $("kpis").innerHTML = [[s.days,t.days],[s.ok,t.workable],[s.bad,t.bad],[s.days ? Math.round(100*s.bad/s.days)+"%" : "-",t.pct]]
+    .map(([v,l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join("");
+  $("rule").textContent = t.rule.replace("%r", s.rain).replace("%w", s.wind).replace("%f", s.frost);
+  drawChart(rows);
+  const mo = monthly(rows);
+  $("months").innerHTML = `<tr><th>${t.ph}</th><th class="n">${t.workable}</th><th class="n">/</th><th></th></tr>` + mo.map(o =>
+    `<tr><td>${t.mo[o.month-1]}</td><td class="n">${o.ok}</td><td class="n">${o.days}</td><td><div class="bar"><i style="width:${100*o.ok/o.days}%"></i></div></td></tr>`).join("");
+  const ww = worstWeeks(rows);
+  $("weeks").innerHTML = `<tr><th>${t.wk}</th><th class="n">${t.badc}</th><th class="n">${t.rainc}</th></tr>` + (ww.length ? ww.map(w =>
+    `<tr><td>${w.start.slice(5)} → ${w.end.slice(5)}</td><td class="n">${w.bad}/7</td><td class="n">${w.rain}</td></tr>`).join("") : `<tr><td colspan=3>-</td></tr>`);
+}
+
+function drawChart(rows){
+  const t = T(), svg = $("chart"), W = Math.max(300, Math.min(900, Math.round(svg.parentNode.clientWidth) || 900)), H = W < 500 ? 280 : 340, P = {l:40,r:12,t:12,b:26}, only = $("onlyOk").checked;
+  if (!rows.length){ svg.innerHTML = ""; return; }
+  // Never draw more points than there are pixels: with big files, group days into buckets (keeping the extremes).
+  const size = Math.ceil(rows.length / (2 * W));
+  if (size > 1) rows = Array.from({length: Math.ceil(rows.length / size)}, (_, k) => { const g = rows.slice(k * size, (k + 1) * size), n = g.filter(r => r.why.length).length;
+    return g.reduce((a, r) => ({...a, temp_max_c: Math.max(a.temp_max_c, r.temp_max_c), temp_min_c: Math.min(a.temp_min_c, r.temp_min_c), rain_mm: Math.max(a.rain_mm, r.rain_mm), wind_max_kmh: Math.max(a.wind_max_kmh, r.wind_max_kmh)}),
+      {...g[0], date: g[0].date + " \u2026 " + g[g.length-1].date, why: n > g.length / 2 ? ["rain","wind","frost"].filter(w => g.some(r => r.why.includes(w))) : []}); });
+  // (a loop, not Math.min(...array): spreading 100,000+ values overflows the call stack)
+  let mn = Infinity, mx = -Infinity; rows.forEach(r => { mn = Math.min(mn, r.temp_min_c); mx = Math.max(mx, r.temp_max_c); });
+  const lo = Math.floor(mn/5)*5, hi = Math.ceil(mx/5)*5;
+  const x = i => P.l + (rows.length === 1 ? 0 : i*(W-P.l-P.r)/(rows.length-1)), y = v => P.t + (hi-v)*(H-P.t-P.b)/(hi-lo), bw = Math.max(1,(W-P.l-P.r)/rows.length);
+  let g = "";
+  for (let v = lo; v <= hi; v += 5) g += `<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" ${v === 0 ? 'stroke-width="1.6"' : ""}/><text x="${P.l-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--mute)">${v}</text>`;
+  const years = new Set(rows.map(r => r.date.slice(0,4))).size;
+  let prev = ""; rows.forEach((r,i) => { if (years <= 2 && r.month !== prev){ prev = r.month;
+    g += `<line x1="${x(i)}" x2="${x(i)}" y1="${H-P.b}" y2="${H-P.b+4}" stroke="var(--mute)"/><text x="${x(i)+2}" y="${H-8}" font-size="11" fill="var(--mute)">${t.mo[r.month-1]}</text>`; } });
+  let bars = "", path = (k) => { let d = "", pen = false;
+    rows.forEach((r,i) => { if (only && r.why.length){ pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(r[k]).toFixed(1); pen = true; }); return d; };
+  rows.forEach((r,i) => { if (r.why.length && !only) bars += `<rect x="${(x(i)-bw/2).toFixed(1)}" y="${P.t}" width="${bw.toFixed(1)}" height="${H-P.t-P.b}" fill="var(--badbg)"/>`; });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let dots = ""; if (only) rows.forEach((r,i) => { if (!r.why.length) dots += `<circle cx="${x(i).toFixed(1)}" cy="${y(r.temp_max_c).toFixed(1)}" r="1.8" fill="var(--warm)"/><circle cx="${x(i).toFixed(1)}" cy="${y(r.temp_min_c).toFixed(1)}" r="1.8" fill="var(--cold)"/>`; });
+  svg.innerHTML = g + bars + dots + `<path d="${path("temp_max_c")}" fill="none" stroke="var(--warm)" stroke-width="1.6"/><path d="${path("temp_min_c")}" fill="none" stroke="var(--cold)" stroke-width="1.6"/>` +
+    `<line id="cur" y1="${P.t}" y2="${H-P.b}" stroke="var(--ink)" stroke-width="1" style="display:none"/><rect id="hit" x="${P.l}" y="${P.t}" width="${W-P.l-P.r}" height="${H-P.t-P.b}" fill="transparent"/>`;
+  $("legend").innerHTML = `<span><i class="sw" style="background:var(--warm)"></i>${t.tmax}</span><span><i class="sw" style="background:var(--cold)"></i>${t.tmin}</span><span><i class="sw" style="background:var(--badbg);border:1px solid var(--bad)"></i>${t.badDay}</span>`;
+  const hit = $("hit"), tip = $("tip"), cur = $("cur");
+  const move = e => { const b = svg.getBoundingClientRect(), p = e.touches ? e.touches[0] : e, px = (p.clientX - b.left)*W/b.width,
+      i = Math.max(0, Math.min(rows.length-1, Math.round((px-P.l)*(rows.length-1)/(W-P.l-P.r)))), r = rows[i];
+    cur.setAttribute("x1", x(i)); cur.setAttribute("x2", x(i)); cur.style.display = "";
+    tip.style.display = "block"; tip.style.left = Math.min(p.clientX + 12, innerWidth - 240) + "px"; tip.style.top = (p.clientY + 12) + "px";
+    tip.innerHTML = `<b>${r.date}</b><br>${r.temp_min_c} / ${r.temp_max_c} °C, ${r.rain_mm} mm, ${r.wind_max_kmh} km/h<br>` + (r.why.length ? r.why.map(w => t.reason[w]).join(", ") : t.workableTip); };
+  hit.onpointermove = move; hit.onpointerdown = move; hit.onpointerleave = () => { tip.style.display = "none"; cur.style.display = "none"; };
+}
+
+addEventListener("resize", () => ALL.length && render());
+$("mFrom").onchange = $("mTo").onchange = $("onlyOk").onchange = render;
+$("file").onchange = e => { const f = e.target.files[0]; if (f) f.text().then(load); };
+$("askBtn").onclick = async () => {
+  const out = $("answer"); out.textContent = T().thinking;
+  try { const r = await fetch("/ask?q=" + encodeURIComponent($("q").value)); if (!r.ok) throw 0; out.textContent = (await r.json()).answer; }
+  catch (e) { out.textContent = T().needServer; }
+};
+load(EMBEDDED_CSV);
+</script>
+</body>
+</html>

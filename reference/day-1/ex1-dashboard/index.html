@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Munich 2025: which days could we work outside?</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b2430;--mute:#5f6b7a;--line:#dde2e8;--warm:#d9622b;--cold:#2b6cb0;--bad:#c0392b;--badbg:rgba(192,57,43,.16);--ok:#2f855a;--acc:#1f4e79}
+@media (prefers-color-scheme:dark){:root{--bg:#12161b;--card:#1b2129;--ink:#e8edf2;--mute:#9aa7b5;--line:#2d3641;--warm:#f0935f;--cold:#6aaaf0;--bad:#ef6a5b;--badbg:rgba(239,106,91,.2);--ok:#59c08a;--acc:#8ec0ee}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:0 0 2px}
+.sub{color:var(--mute);margin:0 0 14px;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:1rem;margin:0 0 8px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+label{font-size:.9rem;color:var(--mute);display:flex;gap:6px;align-items:center}
+select,button,input[type=file]{max-width:100%;font:inherit;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button{cursor:pointer;background:var(--acc);color:#fff;border-color:var(--acc)}
+.toggle{color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--bg);border-radius:8px;padding:8px 10px}
+.kpi b{display:block;font-size:1.4rem}
+.kpi span{font-size:.78rem;color:var(--mute)}
+svg{width:100%;height:auto;display:block;touch-action:pan-y}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--mute);margin-top:6px}
+.sw{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:600;font-size:.8rem}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:10px;background:var(--badbg);border-radius:5px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--ok)}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:.8rem;display:none;z-index:5;max-width:230px}
+.ask{display:flex;gap:8px;flex-wrap:wrap}
+.ask input[type=text]{flex:1;min-width:180px;font:inherit;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+#answer{white-space:pre-wrap;margin-top:8px;color:var(--ink)}
+.note{color:var(--mute);font-size:.82rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:700px){.kpis{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">Munich 2025: which days could we work outside?</h1>
+  <p class="sub" id="sub"></p>
+
+  <div class="card controls">
+    <label>From <select id="mFrom"></select></label>
+    <label>to <select id="mTo"></select></label>
+    <label class="toggle"><input type="checkbox" id="onlyOk"> <span id="lblOk">Workable days only</span></label>
+    <label style="margin-left:auto"><span id="lblFile">Other CSV:</span> <input type="file" id="file" accept=".csv,text/csv"></label>
+  </div>
+
+  <div class="card"><div class="kpis" id="kpis"></div><p class="note" id="rule"></p></div>
+
+  <div class="card">
+    <h2 id="hChart">Daily temperature</h2>
+    <svg id="chart" viewBox="0 0 900 340" role="img" aria-label="Daily temperature chart"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="two">
+    <div class="card"><h2 id="hMonth">Workable days per month</h2><table id="months"></table></div>
+    <div class="card"><h2 id="hWeeks">Five worst weeks</h2><table id="weeks"></table><p class="note" id="weekNote"></p></div>
+  </div>
+
+  <div class="card">
+    <h2 id="hAsk">Ask the data</h2>
+    <div class="ask"><input type="text" id="q" value="Should we pour concrete on Friday?"><button id="askBtn">Ask</button></div>
+    <div id="answer" class="note"></div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<!-- CORE: pure logic, no DOM. The Node test (verify_dashboard.js) evaluates exactly this block. -->
+<script id="core">
+const RULE = {rain: 2, wind: 40, tmin: 0};       // workable = rain < 2 mm AND wind < 40 km/h AND temp_min > 0
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/), head = lines.shift().split(",").map(s => s.trim());
+  return lines.filter(l => l.trim()).map(l => { const c = l.split(","), o = {};
+    head.forEach((h,i) => o[h] = h === "date" ? c[i].trim() : parseFloat(c[i])); return o; });
+}
+function classify(r){                              // list of the reasons a day is NOT workable (empty = workable)
+  const why = [];
+  if (r.rain_mm >= RULE.rain) why.push("rain");
+  if (r.wind_max_kmh >= RULE.wind) why.push("wind");
+  if (r.temp_min_c <= RULE.tmin) why.push("frost");
+  return why;
+}
+function dayOfWeek(iso){ const [y,m,d] = iso.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).getUTCDay(); } // 0=Sun
+function addDays(iso,n){ const [y,m,d] = iso.split("-").map(Number); return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10); }
+function prepare(rows){ return rows.map(r => Object.assign({}, r, {why: classify(r), month: +r.date.slice(5,7)})); }
+function inRange(rows, m1, m2){ return rows.filter(r => r.month >= m1 && r.month <= m2); }
+function monthly(rows){                            // [{month, days, ok, bad}]
+  const out = {};
+  rows.forEach(r => { const o = out[r.month] || (out[r.month] = {month:r.month, days:0, ok:0, bad:0});
+    o.days++; r.why.length ? o.bad++ : o.ok++; });
+  return Object.values(out).sort((a,b) => a.month - b.month);
+}
+// WORST WEEK = a full calendar week (Monday to Sunday, all 7 days inside the selected range) with the most unworkable days.
+// Ties are broken by total rain (mm), then by the lowest minimum temperature. Partial weeks at the edges are ignored.
+function worstWeeks(rows, n = 5){
+  const byDate = new Map(rows.map(r => [r.date, r])), weeks = [];
+  rows.forEach(r => { if (dayOfWeek(r.date) !== 1) return;            // start on Mondays
+    const days = []; for (let i = 0; i < 7; i++){ const d = byDate.get(addDays(r.date, i)); if (!d) return; days.push(d); }
+    weeks.push({start:r.date, end:days[6].date, bad:days.filter(d => d.why.length).length,
+      rain:+days.reduce((s,d) => s + d.rain_mm, 0).toFixed(1), tmin:Math.min(...days.map(d => d.temp_min_c))}); });
+  weeks.sort((a,b) => b.bad - a.bad || b.rain - a.rain || a.tmin - b.tmin || (a.start < b.start ? -1 : 1));
+  return weeks.slice(0, n);
+}
+function summary(rows){
+  const bad = rows.filter(r => r.why.length), c = k => rows.filter(r => r.why.includes(k)).length;
+  return {days:rows.length, ok:rows.length - bad.length, bad:bad.length, rain:c("rain"), wind:c("wind"), frost:c("frost")};
+}
+if (typeof module !== "undefined") module.exports = {parseCSV, classify, prepare, inRange, monthly, worstWeeks, summary};
+</script>
+
+<script>
+const EMBEDDED_CSV = `date,temp_max_c,temp_min_c,rain_mm,wind_max_kmh,sunshine_hours
+2025-01-01,10.7,1.2,0.00,19.7,8.0
+2025-01-02,8.7,0.3,12.20,31.5,0.0
+2025-01-03,0.3,-2.8,0.90,17.7,1.6
+2025-01-04,-0.3,-8.0,0.00,14.2,6.3
+2025-01-05,8.3,-2.8,15.40,22.6,0.0
+2025-01-06,11.1,1.0,0.00,14.7,8.1
+2025-01-07,6.3,1.8,3.80,26.5,4.0
+2025-01-08,2.8,0.7,7.70,17.5,0.0
+2025-01-09,11.2,-0.1,4.10,28.9,5.9
+2025-01-10,1.9,-2.6,0.00,21.1,8.2
+2025-01-11,-0.3,-3.4,0.00,13.5,4.9
+2025-01-12,0.0,-3.2,0.10,15.7,4.6
+2025-01-13,-0.4,-5.6,0.10,12.6,8.2
+2025-01-14,1.9,-6.7,0.00,9.7,8.6
+2025-01-15,0.7,-4.2,2.00,10.5,0.0
+2025-01-16,3.1,-1.5,0.00,14.2,2.8
+2025-01-17,0.3,-2.9,0.00,10.0,1.3
+2025-01-18,0.9,-3.9,0.00,8.2,8.0
+2025-01-19,6.4,-4.7,0.00,7.3,8.8
+2025-01-20,7.5,-3.9,0.00,7.4,8.7
+2025-01-21,5.9,-2.4,0.00,5.8,8.4
+2025-01-22,4.8,-3.4,0.00,7.1,7.7
+2025-01-23,5.2,-0.4,1.10,26.1,4.2
+2025-01-24,11.1,-0.1,0.00,15.5,6.9
+2025-01-25,13.8,2.1,0.00,13.1,6.6
+2025-01-26,7.2,2.0,0.10,22.8,1.8
+2025-01-27,12.2,1.1,2.30,11.1,3.3
+2025-01-28,5.4,0.9,14.30,18.0,0.0
+2025-01-29,8.6,0.8,5.30,25.5,6.5
+2025-01-30,8.1,-2.5,0.00,12.3,8.2
+2025-01-31,4.5,-0.3,1.30,14.8,0.0
+2025-02-01,3.3,-1.6,0.00,14.5,4.9
+2025-02-02,1.4,-2.8,0.00,7.0,0.3
+2025-02-03,1.7,-3.8,0.00,4.8,2.4
+2025-02-04,3.0,-4.2,0.00,7.1,7.0
+2025-02-05,5.6,-3.0,0.00,6.9,9.0
+2025-02-06,2.0,-2.3,0.00,15.7,0.4
+2025-02-07,3.0,-1.5,0.00,16.1,5.4
+2025-02-08,8.6,-2.1,0.00,9.2,9.0
+2025-02-09,6.4,-1.5,0.00,8.0,8.0
+2025-02-10,5.2,-1.5,0.00,9.7,6.5
+2025-02-11,4.9,-0.9,1.50,7.0,0.6
+2025-02-12,11.9,2.0,3.50,14.5,6.0
+2025-02-13,6.0,-2.2,8.70,15.8,0.2
+2025-02-14,-0.2,-2.4,0.80,10.9,0.3
+2025-02-15,1.6,-3.5,0.00,11.8,8.0
+2025-02-16,-1.2,-3.7,3.00,12.9,0.2
+2025-02-17,1.1,-5.5,0.00,10.7,10.2
+2025-02-18,1.1,-5.9,0.00,13.9,8.7
+2025-02-19,2.5,-6.3,0.00,14.2,10.3
+2025-02-20,10.7,-3.8,0.00,8.0,10.1
+2025-02-21,13.7,0.6,0.00,12.7,9.9
+2025-02-22,11.6,-1.0,0.00,8.4,9.4
+2025-02-23,10.6,4.1,0.20,10.8,1.2
+2025-02-24,13.3,3.9,0.60,8.8,8.7
+2025-02-25,13.4,5.4,4.40,10.3,5.3
+2025-02-26,6.7,2.9,4.90,27.7,3.3
+2025-02-27,6.8,0.1,1.30,13.9,3.5
+2025-02-28,6.4,-0.4,3.40,16.6,10.8
+2025-03-01,5.0,-1.2,0.00,11.4,6.3
+2025-03-02,7.1,-2.2,0.00,11.4,10.9
+2025-03-03,8.9,-2.5,0.00,7.4,10.9
+2025-03-04,10.1,-1.3,0.00,6.2,11.0
+2025-03-05,12.4,-1.5,0.00,6.2,11.0
+2025-03-06,14.9,-1.5,0.00,10.1,11.0
+2025-03-07,14.5,-0.5,0.00,8.5,11.0
+2025-03-08,14.7,-0.9,0.00,7.8,11.0
+2025-03-09,17.3,1.2,0.00,8.6,11.0
+2025-03-10,11.5,4.6,2.90,18.4,4.4
+2025-03-11,13.8,2.5,0.00,8.8,9.7
+2025-03-12,10.8,2.1,3.30,9.1,5.2
+2025-03-13,6.6,1.6,6.00,9.5,0.1
+2025-03-14,5.9,1.3,4.80,8.9,0.2
+2025-03-15,5.0,2.1,2.40,21.8,0.0
+2025-03-16,4.7,1.7,0.40,14.5,0.0
+2025-03-17,4.9,-2.4,0.20,14.5,7.3
+2025-03-18,5.6,-3.1,0.00,17.5,11.4
+2025-03-19,11.1,-2.8,0.00,8.9,11.5
+2025-03-20,16.3,0.4,0.00,8.9,11.5
+2025-03-21,17.5,2.5,0.00,13.7,11.3
+2025-03-22,16.7,6.4,0.00,11.5,11.2
+2025-03-23,13.9,5.9,3.50,16.1,3.2
+2025-03-24,12.5,5.0,6.10,9.0,6.9
+2025-03-25,13.0,5.7,7.70,9.8,10.1
+2025-03-26,10.4,4.2,9.70,11.9,7.2
+2025-03-27,8.3,3.2,0.90,10.7,1.6
+2025-03-28,11.6,1.9,0.60,11.4,11.4
+2025-03-29,8.8,6.0,10.10,12.5,0.0
+2025-03-30,12.3,5.1,4.00,26.3,7.9
+2025-03-31,7.6,2.9,5.30,19.6,8.9
+2025-04-01,8.1,1.6,2.60,20.2,5.7
+2025-04-02,13.3,4.3,0.00,25.1,12.2
+2025-04-03,16.3,5.6,0.00,16.1,12.7
+2025-04-04,17.2,4.0,0.00,13.4,12.7
+2025-04-05,18.0,3.0,0.00,15.0,10.4
+2025-04-06,6.4,-0.4,0.00,14.0,12.8
+2025-04-07,8.1,-1.9,0.00,13.1,12.8
+2025-04-08,11.6,0.1,0.00,11.7,12.8
+2025-04-09,10.8,0.9,0.00,10.0,12.3
+2025-04-10,13.7,3.2,0.00,12.5,12.4
+2025-04-11,16.7,3.8,0.00,13.6,12.9
+2025-04-12,18.8,3.9,0.00,15.3,12.9
+2025-04-13,18.5,9.0,0.00,12.4,10.1
+2025-04-14,18.9,8.9,0.10,11.1,9.7
+2025-04-15,20.7,10.6,0.00,11.0,10.7
+2025-04-16,24.0,8.7,0.00,18.3,9.4
+2025-04-17,17.1,7.6,0.00,17.7,11.2
+2025-04-18,11.0,6.0,0.80,20.5,0.5
+2025-04-19,19.3,3.8,0.00,9.4,13.3
+2025-04-20,23.8,6.8,0.00,20.0,12.8
+2025-04-21,17.1,7.6,0.00,12.1,10.1
+2025-04-22,17.2,9.8,0.00,11.6,10.3
+2025-04-23,19.7,8.0,10.10,14.2,12.8
+2025-04-24,12.8,8.0,5.20,22.1,7.8
+2025-04-25,13.2,6.8,2.90,11.8,8.9
+2025-04-26,13.9,7.5,2.50,21.0,6.6
+2025-04-27,16.8,6.3,0.00,14.0,13.5
+2025-04-28,19.6,7.7,0.00,11.7,13.9
+2025-04-29,21.8,8.3,0.00,11.0,13.9
+2025-04-30,23.3,10.3,0.00,12.5,14.0
+2025-05-01,24.6,7.7,0.00,11.3,14.0
+2025-05-02,27.5,10.1,0.00,10.4,14.0
+2025-05-03,22.3,14.4,2.30,18.1,11.3
+2025-05-04,15.7,8.8,5.50,18.5,1.0
+2025-05-05,8.9,5.9,13.70,24.7,0.0
+2025-05-06,10.1,5.1,4.00,16.9,0.2
+2025-05-07,12.7,5.3,1.90,17.2,7.1
+2025-05-08,11.7,6.5,0.30,13.5,4.2
+2025-05-09,12.7,4.9,0.00,19.3,11.7
+2025-05-10,16.4,4.0,0.00,11.6,14.1
+2025-05-11,19.6,4.7,0.00,16.0,14.1
+2025-05-12,18.7,7.8,0.00,13.0,14.1
+2025-05-13,18.1,6.5,0.00,13.3,14.2
+2025-05-14,21.7,6.1,0.00,12.6,14.2
+2025-05-15,18.1,9.5,0.10,19.4,11.7
+2025-05-16,15.1,5.1,0.10,18.5,11.6
+2025-05-17,16.7,7.7,0.90,16.4,12.6
+2025-05-18,18.3,7.8,0.60,19.8,13.9
+2025-05-19,21.2,8.2,0.00,11.3,14.2
+2025-05-20,21.4,9.9,1.20,12.0,13.2
+2025-05-21,21.7,13.0,1.00,15.0,8.2
+2025-05-22,14.5,8.1,4.00,13.0,0.6
+2025-05-23,14.5,5.8,1.40,15.0,12.9
+2025-05-24,16.2,7.1,0.20,11.2,13.0
+2025-05-25,15.7,10.5,3.20,16.7,1.9
+2025-05-26,17.4,10.8,6.50,20.4,7.6
+2025-05-27,17.6,9.2,0.10,14.3,10.4
+2025-05-28,19.1,11.5,5.70,26.2,5.4
+2025-05-29,16.3,10.2,5.50,18.9,7.7
+2025-05-30,24.1,12.5,0.00,11.6,15.0
+2025-05-31,28.6,13.6,0.00,9.2,14.9
+2025-06-01,26.5,16.1,1.80,12.4,8.6
+2025-06-02,22.6,15.4,6.20,16.9,6.3
+2025-06-03,23.3,14.4,6.20,9.0,12.6
+2025-06-04,26.8,14.0,13.50,19.6,11.4
+2025-06-05,19.5,14.1,11.00,12.6,6.2
+2025-06-06,24.6,13.7,0.00,19.7,11.8
+2025-06-07,20.1,13.6,10.30,14.9,5.4
+2025-06-08,18.0,11.0,2.70,25.4,9.2
+2025-06-09,19.0,8.9,0.00,11.0,15.1
+2025-06-10,23.9,9.3,0.00,13.0,15.1
+2025-06-11,22.6,13.0,0.00,11.8,15.0
+2025-06-12,24.9,11.9,0.00,12.9,15.1
+2025-06-13,28.6,13.5,0.00,13.9,15.1
+2025-06-14,32.1,14.7,0.00,10.7,14.2
+2025-06-15,31.0,18.0,8.30,14.2,12.4
+2025-06-16,20.6,13.8,2.20,18.4,9.1
+2025-06-17,23.0,13.5,0.00,13.9,15.0
+2025-06-18,26.8,13.3,0.00,9.7,15.0
+2025-06-19,28.0,15.9,0.00,13.7,15.1
+2025-06-20,25.4,15.5,0.00,11.9,15.0
+2025-06-21,27.3,14.9,0.00,14.9,15.1
+2025-06-22,31.5,14.6,0.00,10.4,15.1
+2025-06-23,28.0,18.2,6.50,22.5,10.2
+2025-06-24,28.1,16.3,0.00,22.4,15.0
+2025-06-25,32.4,17.4,0.00,14.7,15.1
+2025-06-26,32.1,18.5,6.70,15.9,10.0
+2025-06-27,25.2,17.1,2.20,19.9,12.2
+2025-06-28,28.0,17.3,0.40,10.9,15.0
+2025-06-29,31.4,18.1,0.00,9.8,14.8
+2025-06-30,31.2,19.4,0.20,13.7,13.8
+2025-07-01,32.0,19.1,0.00,10.9,15.0
+2025-07-02,34.4,18.5,0.00,12.3,14.6
+2025-07-03,27.8,19.9,3.30,13.4,13.2
+2025-07-04,24.6,17.1,6.60,8.6,9.7
+2025-07-05,30.0,14.7,0.00,11.8,15.0
+2025-07-06,27.0,16.1,1.50,16.4,11.3
+2025-07-07,21.5,13.0,14.00,17.8,10.2
+2025-07-08,15.7,9.9,18.20,19.7,4.9
+2025-07-09,17.5,9.7,2.60,16.7,14.6
+2025-07-10,21.5,11.5,0.70,10.3,12.7
+2025-07-11,21.2,14.0,1.00,11.3,14.2
+2025-07-12,24.9,13.6,0.40,13.3,13.3
+2025-07-13,28.4,12.6,0.30,15.9,15.0
+2025-07-14,23.4,16.9,3.90,19.6,10.7
+2025-07-15,24.2,15.4,12.30,16.9,12.4
+2025-07-16,22.3,13.7,9.40,23.8,5.7
+2025-07-17,20.4,12.1,1.90,14.8,14.5
+2025-07-18,24.8,13.9,0.00,9.2,15.0
+2025-07-19,29.7,13.0,0.40,18.9,12.9
+2025-07-20,31.7,17.0,2.70,16.0,14.9
+2025-07-21,21.6,16.6,12.60,15.0,6.0
+2025-07-22,22.9,15.8,1.10,23.0,14.9
+2025-07-23,25.3,14.3,0.00,9.9,12.8
+2025-07-24,19.6,14.8,13.20,9.0,4.1
+2025-07-25,20.7,14.3,9.50,9.4,10.8
+2025-07-26,18.7,13.9,10.20,10.3,1.0
+2025-07-27,19.8,14.3,13.80,13.7,9.7
+2025-07-28,16.7,12.7,13.10,16.7,2.0
+2025-07-29,17.9,11.9,7.60,14.1,12.0
+2025-07-30,18.8,12.1,0.90,13.2,7.9
+2025-07-31,20.4,11.8,2.80,19.6,14.0
+2025-08-01,21.6,13.9,2.30,16.7,8.7
+2025-08-02,15.8,12.1,9.10,12.3,0.1
+2025-08-03,17.6,11.3,3.00,15.7,9.7
+2025-08-04,18.9,12.2,1.70,14.7,3.8
+2025-08-05,24.7,13.8,2.50,15.3,12.8
+2025-08-06,20.5,11.9,0.30,10.6,14.0
+2025-08-07,24.9,10.8,0.00,9.3,14.1
+2025-08-08,28.9,15.0,0.00,8.8,14.1
+2025-08-09,30.9,16.3,0.00,10.2,13.9
+2025-08-10,27.2,17.5,0.00,10.7,13.9
+2025-08-11,26.0,15.0,0.00,13.1,13.9
+2025-08-12,29.9,14.7,0.00,9.6,13.8
+2025-08-13,33.3,18.5,0.00,10.7,13.8
+2025-08-14,31.5,16.1,0.00,9.3,13.7
+2025-08-15,31.5,17.4,2.80,17.9,13.5
+2025-08-16,26.8,17.4,3.70,17.5,10.2
+2025-08-17,22.5,15.8,2.70,9.0,11.3
+2025-08-18,23.6,12.3,0.00,12.4,13.4
+2025-08-19,25.6,11.8,0.00,7.1,13.5
+2025-08-20,25.9,13.9,5.60,11.4,7.9
+2025-08-21,19.4,15.1,19.40,10.4,1.6
+2025-08-22,19.6,13.0,2.70,11.4,12.2
+2025-08-23,17.2,11.4,0.00,14.7,8.1
+2025-08-24,19.0,9.6,0.00,8.2,13.1
+2025-08-25,22.0,8.3,0.00,7.1,13.1
+2025-08-26,26.0,10.8,0.00,12.0,13.0
+2025-08-27,26.9,16.0,1.40,15.0,10.1
+2025-08-28,23.4,15.1,9.80,14.7,5.8
+2025-08-29,20.3,14.2,27.50,18.1,7.4
+2025-08-30,19.0,12.9,1.30,13.0,9.9
+2025-08-31,22.4,11.3,0.00,9.8,12.9
+2025-09-01,22.5,11.5,2.10,11.4,8.8
+2025-09-02,17.7,12.6,3.40,11.0,5.8
+2025-09-03,23.3,11.1,0.00,9.7,12.0
+2025-09-04,25.1,14.1,6.40,13.1,12.7
+2025-09-05,15.5,10.3,15.20,15.8,0.4
+2025-09-06,19.5,8.2,0.00,13.3,12.5
+2025-09-07,21.2,8.8,0.00,8.8,12.0
+2025-09-08,23.1,10.2,0.10,11.3,10.9
+2025-09-09,19.1,11.6,2.60,18.7,3.5
+2025-09-10,15.8,10.7,5.20,10.3,0.3
+2025-09-11,19.9,11.2,0.30,18.2,9.6
+2025-09-12,16.3,11.5,0.10,13.1,5.1
+2025-09-13,20.3,10.8,0.80,9.4,9.9
+2025-09-14,17.3,12.7,10.60,19.7,9.7
+2025-09-15,24.6,14.4,0.30,18.8,12.0
+2025-09-16,17.2,10.9,1.80,24.7,12.0
+2025-09-17,17.1,9.7,0.00,15.5,9.5
+2025-09-18,23.8,11.8,0.00,9.4,12.0
+2025-09-19,25.9,9.7,0.00,10.2,12.0
+2025-09-20,28.3,13.2,0.00,9.6,12.0
+2025-09-21,26.3,14.5,5.80,11.4,10.9
+2025-09-22,16.8,10.8,3.20,12.7,0.2
+2025-09-23,14.5,9.2,0.50,19.1,0.0
+2025-09-24,12.5,9.5,12.70,21.8,0.0
+2025-09-25,13.6,8.6,4.40,10.1,8.0
+2025-09-26,16.2,8.5,1.50,11.3,8.2
+2025-09-27,15.2,9.2,1.30,8.8,10.3
+2025-09-28,15.6,9.6,0.20,9.7,6.4
+2025-09-29,15.5,8.4,1.60,7.6,9.4
+2025-09-30,14.1,8.5,11.40,13.5,5.1
+2025-10-01,11.6,5.0,0.10,11.2,11.0
+2025-10-02,11.7,2.6,0.00,12.9,11.4
+2025-10-03,12.1,2.8,0.00,10.0,11.3
+2025-10-04,20.7,4.7,3.50,30.7,6.8
+2025-10-05,10.6,6.5,3.00,24.0,7.7
+2025-10-06,10.2,6.8,7.70,24.3,2.5
+2025-10-07,13.4,7.5,3.40,17.2,1.0
+2025-10-08,16.3,6.5,0.00,8.3,10.2
+2025-10-09,13.6,9.4,0.70,7.9,0.0
+2025-10-10,12.4,7.1,0.20,9.9,2.9
+2025-10-11,13.9,8.1,0.00,8.0,9.7
+2025-10-12,13.9,7.7,0.00,6.9,9.7
+2025-10-13,12.2,6.8,0.00,9.4,2.2
+2025-10-14,12.4,4.8,0.00,6.9,6.8
+2025-10-15,12.8,1.9,0.00,8.7,9.1
+2025-10-16,11.0,4.0,0.00,7.4,6.5
+2025-10-17,11.4,5.4,0.00,6.2,7.2
+2025-10-18,11.6,3.9,0.40,9.8,9.5
+2025-10-19,12.0,1.9,0.00,10.0,5.2
+2025-10-20,14.7,6.1,0.50,7.9,5.0
+2025-10-21,16.3,7.7,2.00,11.1,10.0
+2025-10-22,15.6,9.7,4.70,14.7,3.9
+2025-10-23,15.4,8.3,8.20,28.2,0.0
+2025-10-24,8.4,5.9,0.50,28.3,10.0
+2025-10-25,9.8,4.5,14.50,26.2,6.9
+2025-10-26,8.8,4.4,1.80,24.5,8.4
+2025-10-27,6.9,4.4,6.10,34.5,0.0
+2025-10-28,13.2,5.7,1.50,27.4,6.7
+2025-10-29,14.4,5.9,0.00,14.3,9.4
+2025-10-30,14.1,5.7,0.10,23.8,5.9
+2025-10-31,12.9,3.7,0.00,7.6,7.9
+2025-11-01,17.0,5.9,0.00,9.6,8.2
+2025-11-02,11.3,7.6,16.90,18.1,0.0
+2025-11-03,10.5,5.2,1.80,18.4,9.6
+2025-11-04,12.5,2.5,0.00,8.9,9.6
+2025-11-05,10.8,0.8,0.00,8.9,9.2
+2025-11-06,5.9,0.2,0.00,5.6,7.7
+2025-11-07,4.8,0.3,0.00,5.4,5.7
+2025-11-08,6.0,1.4,0.50,10.7,6.2
+2025-11-09,10.3,4.1,6.00,14.8,5.0
+2025-11-10,10.5,3.5,0.40,9.4,7.5
+2025-11-11,13.2,3.8,0.00,12.7,7.0
+2025-11-12,12.2,2.5,0.00,9.4,8.7
+2025-11-13,13.9,3.9,0.00,11.3,8.6
+2025-11-14,18.5,4.8,0.00,10.0,8.5
+2025-11-15,14.5,6.6,0.10,18.4,6.2
+2025-11-16,12.8,6.2,0.40,12.9,5.3
+2025-11-17,8.9,1.0,7.90,20.4,0.0
+2025-11-18,3.8,-1.5,0.20,11.6,6.0
+2025-11-19,3.9,-2.8,0.00,10.6,8.2
+2025-11-20,3.2,-1.3,1.90,22.3,6.1
+2025-11-21,0.4,-3.2,2.70,12.8,0.0
+2025-11-22,-2.1,-5.6,0.00,5.6,5.7
+2025-11-23,0.6,-7.5,0.00,9.4,7.3
+2025-11-24,2.8,-0.4,13.70,9.2,0.0
+2025-11-25,4.4,0.6,8.80,12.2,0.1
+2025-11-26,1.9,-0.7,6.00,10.2,0.0
+2025-11-27,2.0,-3.5,0.10,8.6,3.6
+2025-11-28,4.3,-4.3,0.00,10.0,8.0
+2025-11-29,4.6,0.3,0.20,10.1,1.0
+2025-11-30,6.0,-1.6,1.90,11.3,4.1
+2025-12-01,5.3,1.9,1.20,11.2,5.0
+2025-12-02,4.3,0.2,0.00,8.8,6.3
+2025-12-03,1.9,-0.9,0.00,7.5,4.1
+2025-12-04,1.0,-1.1,0.00,6.5,1.7
+2025-12-05,3.8,-0.2,3.20,11.0,0.0
+2025-12-06,6.3,-0.0,1.90,15.5,2.0
+2025-12-07,8.0,2.9,8.50,20.5,2.9
+2025-12-08,13.2,7.4,7.80,23.3,5.0
+2025-12-09,12.6,2.3,0.00,10.1,8.0
+2025-12-10,11.5,2.3,0.00,12.1,8.0
+2025-12-11,8.9,4.4,0.20,9.9,3.0
+2025-12-12,6.0,0.7,0.00,7.2,5.8
+2025-12-13,5.4,0.0,0.00,7.9,5.0
+2025-12-14,3.7,-1.4,0.00,7.2,3.8
+2025-12-15,2.3,-2.1,0.00,7.1,7.1
+2025-12-16,2.3,-1.8,0.00,8.3,6.4
+2025-12-17,6.1,-0.3,0.00,9.8,0.0
+2025-12-18,10.0,-1.4,0.00,9.4,7.9
+2025-12-19,7.6,-0.4,0.00,9.6,7.9
+2025-12-20,7.2,-1.7,0.00,7.0,7.9
+2025-12-21,2.0,-1.9,0.00,9.6,7.2
+2025-12-22,0.7,-2.2,0.00,7.6,7.1
+2025-12-23,1.1,-1.3,0.10,13.8,0.0
+2025-12-24,1.3,-2.1,4.10,25.8,0.0
+2025-12-25,1.0,-3.1,0.00,19.7,7.4
+2025-12-26,0.1,-4.2,0.00,11.1,5.6
+2025-12-27,0.8,-5.1,0.00,12.4,7.8
+2025-12-28,-0.6,-5.6,0.00,9.9,7.1
+2025-12-29,-0.5,-5.6,0.00,10.5,6.6
+2025-12-30,-0.1,-4.2,2.50,12.5,3.0
+2025-12-31,-0.4,-8.1,0.00,16.1,7.9`;
+</script>
+<script>
+const L = {
+ en:{title:"Munich 2025: which days could we work outside?",from:"From",to:"to",ok:"Workable days only",file:"Other CSV:",chart:"Daily temperature",
+  month:"Workable days per month",weeks:"Five worst weeks",ask:"Ask the data",askBtn:"Ask",days:"days in range",workable:"workable",bad:"unworkable",pct:"unworkable %",
+  rule:"Workable = rain < 2 mm, wind < 40 km/h and minimum temperature above 0 °C. Unworkable days: rain %r, wind %w, frost %f (a day can have several reasons).",
+  tmax:"Daily maximum",tmin:"Daily minimum",badDay:"Unworkable day",wk:"Week",badc:"Bad days",rainc:"Rain mm",weekNote:"Worst week = a full Monday–Sunday week with the most unworkable days; ties broken by rain.",
+  reason:{rain:"rain",wind:"wind",frost:"frost"},workableTip:"workable",mo:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  sub:"%n days, from %a to %b. Select a range, tap the chart for a day.",needServer:"Start ask_server.py (python3 ask_server.py) and open http://localhost:8770 to use this box.",thinking:"Thinking...",ph:"Month"},
+ de:{title:"München 2025: An welchen Tagen konnten wir draußen arbeiten?",from:"Von",to:"bis",ok:"Nur Arbeitstage",file:"Andere CSV:",chart:"Tagestemperatur",
+  month:"Arbeitstage pro Monat",weeks:"Fünf schlechteste Wochen",ask:"Frag die Daten",askBtn:"Fragen",days:"Tage im Zeitraum",workable:"arbeitsfähig",bad:"nicht arbeitsfähig",pct:"% nicht arbeitsfähig",
+  rule:"Arbeitsfähig = Regen < 2 mm, Wind < 40 km/h und Tiefsttemperatur über 0 °C. Nicht arbeitsfähig: Regen %r, Wind %w, Frost %f (ein Tag kann mehrere Gründe haben).",
+  tmax:"Tageshöchstwert",tmin:"Tagestiefstwert",badDay:"Nicht arbeitsfähiger Tag",wk:"Woche",badc:"Schlechte Tage",rainc:"Regen mm",weekNote:"Schlechteste Woche = volle Woche Montag–Sonntag mit den meisten nicht arbeitsfähigen Tagen; bei Gleichstand zählt der Regen.",
+  reason:{rain:"Regen",wind:"Wind",frost:"Frost"},workableTip:"arbeitsfähig",mo:["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"],
+  sub:"%n Tage, von %a bis %b. Zeitraum wählen, für einen Tag das Diagramm antippen.",needServer:"Starte ask_server.py (python3 ask_server.py) und öffne http://localhost:8770, um dieses Feld zu nutzen.",thinking:"Denke nach...",ph:"Monat"}
+};
+let lang = (navigator.language || "en").startsWith("de") ? "de" : "en", ALL = [];
+const $ = id => document.getElementById(id), T = () => L[lang];
+
+function load(csv){ ALL = prepare(parseCSV(csv)); buildSelects(); render(); }
+function buildSelects(){
+  const months = [...new Set(ALL.map(r => r.month))].sort((a,b) => a-b);
+  for (const id of ["mFrom","mTo"]){ const el = $(id), keep = el.value;
+    el.innerHTML = months.map(m => `<option value="${m}">${T().mo[m-1]}</option>`).join("");
+    el.value = keep && months.includes(+keep) ? keep : (id === "mFrom" ? months[0] : months[months.length-1]); }
+}
+function range(){ let a = +$("mFrom").value, b = +$("mTo").value; if (a > b) [a,b] = [b,a]; return [a,b]; }
+
+function render(){
+  const t = T(), [m1,m2] = range(), rows = inRange(ALL, m1, m2), s = summary(rows);
+  document.documentElement.lang = lang; document.title = t.title; $("title").textContent = t.title;
+  $("lblOk").textContent = t.ok; $("lblFile").textContent = t.file; $("hChart").textContent = t.chart; $("hMonth").textContent = t.month;
+  $("hWeeks").textContent = t.weeks; $("hAsk").textContent = t.ask; $("askBtn").textContent = t.askBtn; $("weekNote").textContent = t.weekNote;
+  $("sub").innerHTML = t.sub.replace("%n", rows.length).replace("%a", rows[0] ? rows[0].date : "-").replace("%b", rows.length ? rows[rows.length-1].date : "-") +
+    ` <a href="#" id="langBtn">${lang === "en" ? "Deutsch" : "English"}</a>`;
+  $("langBtn").onclick = e => { e.preventDefault(); lang = lang === "en" ? "de" : "en"; buildSelects(); render(); };
+  $("kpis").innerHTML = [[s.days,t.days],[s.ok,t.workable],[s.bad,t.bad],[s.days ? Math.round(100*s.bad/s.days)+"%" : "-",t.pct]]
+    .map(([v,l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join("");
+  $("rule").textContent = t.rule.replace("%r", s.rain).replace("%w", s.wind).replace("%f", s.frost);
+  drawChart(rows);
+  const mo = monthly(rows);
+  $("months").innerHTML = `<tr><th>${t.ph}</th><th class="n">${t.workable}</th><th class="n">/</th><th></th></tr>` + mo.map(o =>
+    `<tr><td>${t.mo[o.month-1]}</td><td class="n">${o.ok}</td><td class="n">${o.days}</td><td><div class="bar"><i style="width:${100*o.ok/o.days}%"></i></div></td></tr>`).join("");
+  const ww = worstWeeks(rows);
+  $("weeks").innerHTML = `<tr><th>${t.wk}</th><th class="n">${t.badc}</th><th class="n">${t.rainc}</th></tr>` + (ww.length ? ww.map(w =>
+    `<tr><td>${w.start.slice(5)} → ${w.end.slice(5)}</td><td class="n">${w.bad}/7</td><td class="n">${w.rain}</td></tr>`).join("") : `<tr><td colspan=3>-</td></tr>`);
+}
+
+function drawChart(rows){
+  const t = T(), svg = $("chart"), W = Math.max(300, Math.min(900, Math.round(svg.parentNode.clientWidth) || 900)), H = W < 500 ? 280 : 340, P = {l:40,r:12,t:12,b:26}, only = $("onlyOk").checked;
+  if (!rows.length){ svg.innerHTML = ""; return; }
+  // Never draw more points than there are pixels: with big files, group days into buckets (keeping the extremes).
+  const size = Math.ceil(rows.length / (2 * W));
+  if (size > 1) rows = Array.from({length: Math.ceil(rows.length / size)}, (_, k) => { const g = rows.slice(k * size, (k + 1) * size), n = g.filter(r => r.why.length).length;
+    return g.reduce((a, r) => ({...a, temp_max_c: Math.max(a.temp_max_c, r.temp_max_c), temp_min_c: Math.min(a.temp_min_c, r.temp_min_c), rain_mm: Math.max(a.rain_mm, r.rain_mm), wind_max_kmh: Math.max(a.wind_max_kmh, r.wind_max_kmh)}),
+      {...g[0], date: g[0].date + " \u2026 " + g[g.length-1].date, why: n > g.length / 2 ? ["rain","wind","frost"].filter(w => g.some(r => r.why.includes(w))) : []}); });
+  // (a loop, not Math.min(...array): spreading 100,000+ values overflows the call stack)
+  let mn = Infinity, mx = -Infinity; rows.forEach(r => { mn = Math.min(mn, r.temp_min_c); mx = Math.max(mx, r.temp_max_c); });
+  const lo = Math.floor(mn/5)*5, hi = Math.ceil(mx/5)*5;
+  const x = i => P.l + (rows.length === 1 ? 0 : i*(W-P.l-P.r)/(rows.length-1)), y = v => P.t + (hi-v)*(H-P.t-P.b)/(hi-lo), bw = Math.max(1,(W-P.l-P.r)/rows.length);
+  let g = "";
+  for (let v = lo; v <= hi; v += 5) g += `<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" ${v === 0 ? 'stroke-width="1.6"' : ""}/><text x="${P.l-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--mute)">${v}</text>`;
+  const years = new Set(rows.map(r => r.date.slice(0,4))).size;
+  let prev = ""; rows.forEach((r,i) => { if (years <= 2 && r.month !== prev){ prev = r.month;
+    g += `<line x1="${x(i)}" x2="${x(i)}" y1="${H-P.b}" y2="${H-P.b+4}" stroke="var(--mute)"/><text x="${x(i)+2}" y="${H-8}" font-size="11" fill="var(--mute)">${t.mo[r.month-1]}</text>`; } });
+  let bars = "", path = (k) => { let d = "", pen = false;
+    rows.forEach((r,i) => { if (only && r.why.length){ pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(r[k]).toFixed(1); pen = true; }); return d; };
+  rows.forEach((r,i) => { if (r.why.length && !only) bars += `<rect x="${(x(i)-bw/2).toFixed(1)}" y="${P.t}" width="${bw.toFixed(1)}" height="${H-P.t-P.b}" fill="var(--badbg)"/>`; });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let dots = ""; if (only) rows.forEach((r,i) => { if (!r.why.length) dots += `<circle cx="${x(i).toFixed(1)}" cy="${y(r.temp_max_c).toFixed(1)}" r="1.8" fill="var(--warm)"/><circle cx="${x(i).toFixed(1)}" cy="${y(r.temp_min_c).toFixed(1)}" r="1.8" fill="var(--cold)"/>`; });
+  svg.innerHTML = g + bars + dots + `<path d="${path("temp_max_c")}" fill="none" stroke="var(--warm)" stroke-width="1.6"/><path d="${path("temp_min_c")}" fill="none" stroke="var(--cold)" stroke-width="1.6"/>` +
+    `<line id="cur" y1="${P.t}" y2="${H-P.b}" stroke="var(--ink)" stroke-width="1" style="display:none"/><rect id="hit" x="${P.l}" y="${P.t}" width="${W-P.l-P.r}" height="${H-P.t-P.b}" fill="transparent"/>`;
+  $("legend").innerHTML = `<span><i class="sw" style="background:var(--warm)"></i>${t.tmax}</span><span><i class="sw" style="background:var(--cold)"></i>${t.tmin}</span><span><i class="sw" style="background:var(--badbg);border:1px solid var(--bad)"></i>${t.badDay}</span>`;
+  const hit = $("hit"), tip = $("tip"), cur = $("cur");
+  const move = e => { const b = svg.getBoundingClientRect(), p = e.touches ? e.touches[0] : e, px = (p.clientX - b.left)*W/b.width,
+      i = Math.max(0, Math.min(rows.length-1, Math.round((px-P.l)*(rows.length-1)/(W-P.l-P.r)))), r = rows[i];
+    cur.setAttribute("x1", x(i)); cur.setAttribute("x2", x(i)); cur.style.display = "";
+    tip.style.display = "block"; tip.style.left = Math.min(p.clientX + 12, innerWidth - 240) + "px"; tip.style.top = (p.clientY + 12) + "px";
+    tip.innerHTML = `<b>${r.date}</b><br>${r.temp_min_c} / ${r.temp_max_c} °C, ${r.rain_mm} mm, ${r.wind_max_kmh} km/h<br>` + (r.why.length ? r.why.map(w => t.reason[w]).join(", ") : t.workableTip); };
+  hit.onpointermove = move; hit.onpointerdown = move; hit.onpointerleave = () => { tip.style.display = "none"; cur.style.display = "none"; };
+}
+
+addEventListener("resize", () => ALL.length && render());
+$("mFrom").onchange = $("mTo").onchange = $("onlyOk").onchange = render;
+$("file").onchange = e => { const f = e.target.files[0]; if (f) f.text().then(load); };
+$("askBtn").onclick = async () => {
+  const out = $("answer"); out.textContent = T().thinking;
+  try { const r = await fetch("/ask?q=" + encodeURIComponent($("q").value)); if (!r.ok) throw 0; out.textContent = (await r.json()).answer; }
+  catch (e) { out.textContent = T().needServer; }
+};
+load(EMBEDDED_CSV);
+</script>
+</body>
+</html>

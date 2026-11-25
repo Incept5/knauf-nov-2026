@@ -1,0 +1,20 @@
+{
+  "_label": "CANNED EXAMPLE written by the workshop team. Not real model output.",
+  "summary": "Adds orders/delivery.py with add_working_days and delivery_date (3 working days, 1 for express), plus unit tests.",
+  "risk": "low",
+  "risk_reasons": [
+    "new module, nothing else calls it yet",
+    "tests cover weekends, express and bad input"
+  ],
+  "findings": [
+    {
+      "file": "orders/delivery.py",
+      "line": 1,
+      "severity": "low",
+      "category": "other",
+      "explanation": "Public holidays are ignored; the docstring says so, but a delivery promise on a holiday would be wrong.",
+      "suggested_fix": "Track holidays in a follow-up before this is shown to customers."
+    }
+  ],
+  "recommendation": "approve"
+}

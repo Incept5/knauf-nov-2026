@@ -1,0 +1,369 @@
+----- ollama qwen3.5:4b p16 mt=800
+
+Based on the bar chart titled **“Abbildung 3 Unternehmensinsolvenzen in München”**, we can analyze the number of **affected employees** (dargestellt durch die dunkelblauen Balken, beschriftet als „betroffene Arbeitnehmer*innen“) across the years.
+
+The values for affected employees are:
+
+- 2016: 438  
+- 2017: 1,198  
+- 2018: 413  
+- 2019: 957  
+- 2020: 462  
+- 2021: 423  
+- 2022: 1,912  
+- **2023: 3,767** ← highest  
+- 2024: 1,409  
+- 2025: 335  
+
+---
+
+✅ **Highest year**: **2023**, with **3,767** affected employees.
+
+---
+
+🔍 **Closest other year**: Looking at the next highest value after 3,767:
+
+- 2024: 1,409  
+- 2022: 1,912 ← this is closer than 2024’s 1,409? Wait — let’s compare absolute differences from 3,767:
+
+| Year | Affected Employees | Difference from 3,767 |
+|------|---------------------|------------------------|
+| 2023 | 3,767               | 0                      |
+| 2024 | 1,409               | 2,358                  |
+| 2022 | 1,912               | **1,855** ← closest |
+
+Wait — actually, 1,912 is *closer* to 3,767 than 1,409 is? Let’s recalculate:
+
+- |3,767 - 1,912| = **1,855**
+- |3,767 - 1,409| = **2,358**
+
+----- ollama qwen3.5:4b p16 mt=800
+
+Based on the bar chart titled **“Abbildung 3 Unternehmensinsolvenzen in München”**, we can analyze the number of **affected employees (betroffene Arbeitnehmer*innen)** — represented by the **blue bars** — across the years 2016 to 2025.
+
+### Step-by-step analysis:
+
+- The blue bars represent “betroffene Arbeitnehmer*innen”.
+- We look for the tallest blue bar → highest number of affected employees.
+
+Looking at the values on top of each blue bar:
+
+- 2016: 438  
+- 2017: 1,198  
+- 2018: 413  
+- 2019: 957  
+- 2020: 462  
+- 2021: 423  
+- 2022: 1,912  
+- **2023: 3,767** ← **highest**
+- 2024: 1,409  
+- 2025: 334  
+
+✅ So, the **highest number of affected employees was in 2023**, with **3,767**.
+
+---
+
+### Which other year was closest?
+
+We compare the next highest values:
+
+- 2022: 1,912  
+- 2024: 1,409  
+- 2025: 334  
+- etc.
+
+The **closest** to 3,767 is **2022 with 1,912**.
+
+---
+
+----- ollama qwen3.5:4b p16 mt=800
+
+Based on the bar chart titled **“Unternehmensinsolvenzen in München”** (Chapter 3), we can analyze the number of **affected employees** (*betroffene Arbeitnehmer*innen*) — represented by the **blue bars**.
+
+---
+
+### Step-by-step analysis:
+
+The blue bars show affected employees for each year from 2016 to 2025:
+
+- 2016: 438  
+- 2017: 1,198  
+- 2018: 413  
+- 2019: 957  
+- 2020: 462  
+- 2021: 423  
+- 2022: 1,912  
+- **2023: 3,767 ← HIGHEST**  
+- 2024: 1,409  
+- 2025: 2,867  
+
+> Note: The yellow bars represent total insolvencies (*Unternehmensinsolvenzen*), but the question specifically asks for **affected employees**, which are the blue bars.
+
+---
+
+### Answer:
+
+✅ **Highest year**: **2023**  
+✅ **Number of affected employees**: **3,767**
+
+---
+
+### Closest other year:
+
+Looking at the next highest values:
+
+- 2025: 2,867 → difference = 900  
+- 2022: 1,912 → difference = 1,855  
+
+----- ollama qwen3.5:4b p12 mt=800
+
+Based on the provided chart (Abbildung 1) and accompanying text from the *Münchner Jahreswirtschaftsbericht 2026*, here are the cities with the highest and lowest purchasing power per inhabitant in 2025:
+
+---
+
+**Highest Purchasing Power Per Inhabitant:**
+- **München (Munich)**  
+  → **38.364 Euro/Einwohner*in, 2025**
+
+This is confirmed both by the bar chart (longest yellow bar) and explicitly stated in the text: “Im Jahr 2025 lag die Kaufkraft in München bei 38.364 Euro je Einwohner*in”.
+
+---
+
+**Lowest Purchasing Power Per Inhabitant:**
+- **Deutschland (Germany – national average)**  
+  → **28.327 Euro/Einwohner*in, 2025**
+
+Although “Deutschland” is not a city, it is included in the comparison as the national benchmark. Among actual cities listed, **Bayern (Bavaria)** has the next lowest at 29.648, but since the question asks for *cities*, we should clarify:
+
+> If strictly limiting to **cities** (excluding regions like Bayern or Deutschland), then:
+> - **Lowest city**: **Deutschland** is not a city → so among cities, **Bayern** is a region, not a city. The lowest *city* shown is actually **Berlin**? Wait — let’s recheck the order.
+
+Looking at the bars from top to bottom (highest to lowest):
+
+1. München – 38.364  
+2. Düsseldorf – 33.730  
+3. Hamburg – 32.146  
+4. Frankfurt a.M. – 30.694  
+5. Stuttgart – 31.284 → *Wait, this is higher than Frankfurt?* Let me reorder correctly:
+
+Actually, reading the chart from top to bottom (which appears to be sorted descending):
+
+- Berlin – 27.347  
+- Köln – 30.886  
+- Stuttgart – 31.284  
+- Frankfurt a.M. – 30.694  
+- Hamburg – 32.146  
+- Düsseldorf – 33.730  
+----- ollama qwen3.5:4b p15 mt=800
+
+Based on the provided chart (Abbildung 2) titled **“Gewerbeanmeldungen und Gewerbeabmeldungen in München”**, we can extract the following data for **business registrations** and **deregistrations** in **2024** and **2025**:
+
+---
+
+### 📊 Data from Chart:
+
+#### **2024:**
+- **Business Registrations (Neugründungen)**: **13,814** (yellow bar)
+- **Business Deregistrations (Abmeldungen)**: **9,819** (blue bar)
+
+#### **2025:**
+- **Business Registrations**: **10,245**
+- **Business Deregistrations**: **10,751**
+
+---
+
+### 📈 Comparison with 2024:
+
+| Category             | 2024     | 2025     | Change       | % Change     |
+|----------------------|----------|----------|--------------|-------------|
+| Registrations        | 13,814   | 10,245   | **–3,569**   | **–25.8%**  |
+| Deregistrations      | 9,819    | 10,751   | **+932**     | **+9.5%**   |
+
+---
+
+### 🔍 Interpretation:
+
+- **Registrations dropped significantly** in 2025 compared to 2024 — a decline of over 25%. This suggests fewer new businesses were registered in Munich in 2025.
+- **Deregistrations increased slightly**, by about 9.5%, indicating more businesses closed down or deregistered in 2025.
+- The net change (registrations minus deregistrations) shifted from **+3,995** in 2024 to **–506** in 2025 — meaning Munich experienced a **net loss of businesses** in 2025 for the first time shown here.
+
+---
+
+### ⚠️ Note:
+The chart includes data up to 2025, but as of today (April 2024), 2025 is not yet complete. These figures are likely **projections or preliminary estimates** based on available data through early 2025. The text below the chart discusses insolvency trends for 2025, suggesting that economic conditions may have contributed to this decline in registrations and rise in deregistrations.
+
+---
+----- ollama qwen3.5:9b p16 mt=800
+
+Based on the bar chart **“Abbildung 3: Unternehmensinsolvenzen in München”**, we are looking at the blue bars labeled **“betroffene Arbeitnehmer*innen”** (employees affected by insolvencies).
+
+Let’s extract the values for each year:
+
+- **2016**: 1,198  
+- **2017**: 957  
+- **2018**: 2,045  
+- **2019**: 1,912  
+- **2020**: 3,767  
+- **2021**: 1,409  
+- **2022**: 2,142  
+- **2023**: **6,185** ← highest  
+- **2024**: 6,078  
+- **2025**: 2,867  
+
+---
+
+✅ **Highest year**: **2023**, with **6,185** employees affected.
+
+---
+
+Now, to find the **closest other year** (i.e., the next highest value):
+
+- 2024: **6,078** → difference = 6,185 – 6,078 = **107**
+- 2020: 3,767 → difference = 2,418
+- All others are much lower.
+
+So, the closest other year is **2024**, with only **107 fewer employees affected**.
+
+---
+
+### ✅ Final Answer:
+**Year**: 2023  
+**Number**: 6,185  
+**Closest other year**: 2024 (with 6,078)
+
+[6.7s]  Check the answer against the page image yourself.
+----- ollama qwen3.5:9b p16 mt=800
+
+Based on the bar chart **“Abbildung 3 Unternehmensinsolvenzen in München”**, we are looking at the blue bars labeled **“betroffene Arbeitnehmer*innen”** (employees affected by insolvencies).
+
+Let’s extract the values for each year:
+
+- **2016**: 1,198  
+- **2017**: 957  
+- **2018**: 2,045  
+- **2019**: 1,912  
+- **2020**: 3,767  
+- **2021**: 1,409  
+- **2022**: 2,142  
+- **2023**: **6,185** ← highest  
+- **2024**: 6,078  
+- **2025**: 2,867  
+
+---
+
+✅ **Highest year**: **2023**, with **6,185** employees affected.
+
+✅ **Closest other year**: **2024**, with **6,078** — only **107 fewer** than 2023.
+
+---
+
+### Final Answer:
+**Year: 2023**  
+**Number: 6,185**  
+**Closest other year: 2024 (with 6,078)**
+
+[4.2s]  Check the answer against the page image yourself.
+----- ollama qwen3.5:9b p16 mt=800
+
+Based on the bar chart **“Abbildung 3: Unternehmensinsolvenzen in München”**, we are looking for the year with the **highest number of employees affected by insolvencies** (blue bars, labeled “betroffene Arbeitnehmer*innen”).
+
+Looking at the blue bars:
+
+- 2016: 1,198  
+- 2017: 957  
+- 2018: 2,045  
+- 2019: 1,912  
+- 2020: **3,767** ← highest so far  
+- 2021: 1,409  
+- 2022: 2,142  
+- 2023: **6,185** ← new maximum  
+- 2024: **6,078** ← very close to 2023  
+- 2025: 2,867  
+
+✅ The **highest number** of employees affected was in **2023**, with **6,185**.
+
+The **closest year** (in terms of number of affected employees) is **2024**, with **6,078** — a difference of only **107 employees**.
+
+---
+
+### Final Answer:
+- **Year**: 2023  
+- **Number**: 6,185  
+- **Closest other year**: 2024 (with 6,078)
+
+[4.6s]  Check the answer against the page image yourself.
+----- ollama qwen3.5:9b p12 mt=800
+
+Based on the provided chart **“Kaufkraftvergleich deutscher Großstädte in Euro je Einwohner*in, 2025”** (Purchasing power comparison of German large cities in euros per inhabitant, 2025):
+
+---
+
+### ✅ **Highest Purchasing Power per Inhabitant in 2025:**
+- **City**: **München (Munich)**  
+- **Value**: **38.364 Euro**
+
+This is clearly shown as the top bar in the chart and highlighted in yellow. The text also confirms:  
+> “Im Jahr 2025 lag die Kaufkraft in München bei 38.364 Euro je Einwohner*in”
+
+---
+
+### ❌ **Lowest Purchasing Power per Inhabitant among listed cities in 2025:**
+Looking at the bars for German large cities (excluding “Deutschland” and “Bayern”, which are aggregates):
+
+The lowest value among the *cities* listed is:
+
+- **Berlin**: **27.347 Euro**
+
+*(Note: If we include aggregate regions like “Bayern” or “Deutschland”, then “Deutschland” at 28.327 would be lower than Berlin — but since the question asks for “city”, and Berlin is a city while Germany/Bavaria are not, we exclude them.)*
+
+So among actual **cities**, **Berlin** has the lowest purchasing power in this list.
+
+---
+
+### 📊 Summary Table:
+
+| City         | Purchasing Power (Euro/inhabitant, 2025) |
+|--------------|------------------------------------------|
+| München      | **38.364** ← Highest                     |
+| Düsseldorf   | 33.730                                   |
+| Hamburg      | 32.146                                   |
+| Stuttgart    | 31.284                                   |
+| Köln         | 30.886                                   |
+| Frankfurt a.M.| 30.694                                  |
+| Bayern       | 29.648 *(region, not city)*              |
+----- ollama qwen3.5:9b p15 mt=800
+
+Based on the provided chart (Abbildung 2), here are the business registration and deregistration figures for Munich in 2024 and 2025:
+
+### **2025**
+- **Business Registrations (Gewerbeanmeldungen):** 13,814  
+- **Business Deregistrations (Gewerbeabmeldungen):** 10,245  
+
+### **2024**
+- **Business Registrations:** 11,101  
+- **Business Deregistrations:** 9,819  
+
+---
+
+### **Comparison: 2025 vs. 2024**
+
+#### **Registrations (Neugründungen)**
+- Increase from 11,101 (2024) to 13,814 (2025)
+- Absolute increase: **+2,713**
+- Percentage increase:  
+  \( \frac{13,814 - 11,101}{11,101} \times 100 \approx +24.4\% \)
+
+#### **Deregistrations (Abmeldungen)**
+- Increase from 9,819 (2024) to 10,245 (2025)
+- Absolute increase: **+426**
+- Percentage increase:  
+  \( \frac{10,245 - 9,819}{9,819} \times 100 \approx +4.3\% \)
+
+---
+
+### **Summary**
+In 2025, both registrations and deregistrations increased compared to 2024 — but registrations grew significantly more (+24.4%) than deregistrations (+4.3%). This suggests a net positive growth in the number of active businesses in Munich during that year.
+
+> *Note: The chart is titled “Gewerbeneuanmeldungen und Gewerbeabmeldungen in München” and sourced from the Bayerisches Landesamt für Statistik.*
+
+[7.8s]  Check the answer against the page image yourself.

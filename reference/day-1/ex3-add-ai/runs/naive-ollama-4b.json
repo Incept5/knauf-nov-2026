@@ -1,0 +1,38 @@
+[
+ {
+  "probe": "naive-check",
+  "rep": 0,
+  "seconds": 3.31,
+  "raw": "{\n  \"consistent\": false,\n  \"reasons\": [\n    \"Order A-1003 specifies a quantity of 50 units for SKU PB-150, but the delivery note states only 46 units were delivered.\",\n    \"The delivery note mentions short-delivered items and back-orders, which contradicts the expectation that the full order quantity should be present unless explicitly noted as partial. While the note does mention a back-order, it implies the current delivery is incomplete compared to the order.\"\n  ]\n}"
+ },
+ {
+  "probe": "naive-check",
+  "rep": 1,
+  "seconds": 4.82,
+  "raw": "{\n  \"consistent\": false,\n  \"order_id\": \"A-1003\",\n  \"issues\": [\n    {\n      \"type\": \"quantity_mismatch\",\n      \"description\": \"Order quantity is 50, delivered quantity is 46.\"\n    },\n    {\n      \"type\": \"sku_mismatch\",\n      \"description\": \"Order specifies SKU PB-150. Delivery note description 'Plasterboard 15 mm' lacks the specific SKU identifier to confirm it matches PB-150, though likely intended.\"\n    }\n  ],\n  \"summary\": \"The delivery note does not match order A-1003 because 4 units are missing (short delivery) and the specific SKU is not explicitly listed in the delivery text despite the description implying the correct item type.\"\n}"
+ },
+ {
+  "probe": "naive-check",
+  "rep": 2,
+  "seconds": 2.16,
+  "raw": "{\n  \"consistent\": false,\n  \"reasons\": [\n    \"Order A-1003 requests 50 units of SKU PB-150, but the delivery note shows only 46 units.\",\n    \"The delivery note mentions 'short-delivered' and a 'back-order expected', indicating the quantity does not match the order requirement.\"\n  ]\n}"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 0,
+  "seconds": 3.56,
+  "raw": "```json\n{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound\",\n  \"quantity\": \"two buckets\",\n  \"problem\": \"stack of buckets tipped over due to uneven ground and lack of barriers; compound reached stairwell creating slip risk\",\n  \"who_must_act\": [\n    {\n      \"role\": \"site manager\",\n      \"task\": \"create storage plan for all levels\"\n    },\n    {\n      \"role\": \"H&S officer\",\n      \"task\": \"conduct toolbox talk on stacking limits (due 9 November)\"\n    }\n  ]\n}\n```"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 1,
+  "seconds": 3.48,
+  "raw": "```json\n{\n  \"date\": \"2 November 2026\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound buckets\",\n  \"quantity\": \"Two buckets\",\n  \"problem\": \"Bucket stack tipped over when lift was called; compound reached stairwell creating a slip risk.\",\n  \"who_must_act\": [\n    {\n      \"role\": \"site manager\",\n      \"task\": \"Create storage plan for all levels\"\n    },\n    {\n      \"role\": \"H&S officer\",\n      \"task\": \"Conduct toolbox talk on stacking limits (due 9 November)\"\n    }\n  ]\n}\n```"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 2,
+  "seconds": 3.4,
+  "raw": "```json\n{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound\",\n  \"quantity\": \"Two buckets (one stack)\",\n  \"problem\": \"Buckets tipped over due to uneven ground and lack of barriers; compound reached the stairwell creating a slip risk.\",\n  \"who_must_act\": {\n    \"owner_storage_plan\": \"Site Manager\",\n    \"owner_toolbox_talk\": \"H&S Officer\",\n    \"due_date_toolbox_talk\": \"2026-11-09\"\n  }\n}\n```"
+ }
+]

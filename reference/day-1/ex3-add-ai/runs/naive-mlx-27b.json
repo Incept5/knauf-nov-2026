@@ -1,0 +1,38 @@
+[
+ {
+  "probe": "naive-check",
+  "rep": 0,
+  "seconds": 6.81,
+  "raw": "{\n  \"is_consistent\": false,\n  \"order_id\": \"A-1003\",\n  \"discrepancies\": [\n    {\n      \"type\": \"quantity_mismatch\",\n      \"sku\": \"PB-150\",\n      \"ordered_qty\": 50,\n      \"delivered_qty\": 46,\n      \"note\": \"Delivery note states 46 delivered (4 short-delivered), which does not match the ordered quantity of 50.\"\n    }\n  ]\n}"
+ },
+ {
+  "probe": "naive-check",
+  "rep": 1,
+  "seconds": 4.98,
+  "raw": "{\n  \"is_consistent\": false,\n  \"order_id\": \"A-1003\",\n  \"discrepancies\": [\n    {\n      \"type\": \"quantity_mismatch\",\n      \"sku\": \"PB-150\",\n      \"expected_qty\": 50,\n      \"delivered_qty\": 46,\n      \"note\": \"4 units short-delivered\"\n    }\n  ]\n}"
+ },
+ {
+  "probe": "naive-check",
+  "rep": 2,
+  "seconds": 8.36,
+  "raw": "{\n  \"is_consistent\": false,\n  \"order_id\": \"A-1003\",\n  \"details\": {\n    \"expected_qty\": 50,\n    \"delivered_qty\": 46,\n    \"discrepancy_qty\": 4,\n    \"notes\": [\n      \"The delivery note states 46 items were delivered, while the order (A-1003) specifies 50.\",\n      \"The note confirms 4 items were short-delivered and placed on back-order.\",\n      \"The SKU PB-150 in the order matches the description 'Plasterboard 15 mm fire-rated 1200x2000' in the delivery note.\"\n    ]\n  }\n}"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 0,
+  "seconds": 10.59,
+  "raw": "```json\n{\n  \"date\": \"2 November 2026\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"Jointing compound\",\n  \"quantity\": \"2 buckets\",\n  \"problem\": \"Stack of jointing compound buckets tipped over, causing compound to reach the stairwell and creating a slip risk\",\n  \"who_must_act\": [\n    {\n      \"action\": \"Create storage plan for all levels\",\n      \"owner\": \"Site manager\"\n    },\n    {\n      \"action\": \"Conduct toolbox talk on stacking limits\",\n      \"owner\": \"H&S officer\"\n    }\n  ]\n}\n```"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 1,
+  "seconds": 5.7,
+  "raw": "```json\n{\n  \"date\": \"2 November 2026\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound\",\n  \"quantity\": \"2 buckets\",\n  \"problem\": \"Stack of jointing compound buckets tipped over, splitting and releasing compound into the stairwell, creating a slip risk\",\n  \"who must act\": [\n    \"site manager\",\n    \"H&S officer\"\n  ]\n}\n```"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 2,
+  "seconds": 7.47,
+  "raw": "```json\n{\n  \"date\": \"2 November 2026\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound\",\n  \"quantity\": \"2 buckets\",\n  \"problem\": \"Stack of buckets tipped over, causing compound to reach the stairwell and creating a slip risk\",\n  \"who must act\": [\n    {\n      \"role\": \"site manager\",\n      \"action\": \"storage plan for all levels\"\n    },\n    {\n      \"role\": \"H&S officer\",\n      \"action\": \"toolbox talk on stacking limits\"\n    }\n  ]\n}\n```"
+ }
+]

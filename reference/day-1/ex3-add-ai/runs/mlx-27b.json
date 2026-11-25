@@ -1,0 +1,512 @@
+{
+ "label": "mlx-27b",
+ "model": "~/.lmstudio/models/Qwen/Qwen3.8-27B-MLX-4bit",
+ "cases": [
+  {
+   "rep": 0,
+   "task": "summarise",
+   "doc": "delivery_note.txt",
+   "seconds": 9.91,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 272,
+     "completion_tokens": 140,
+     "total_tokens": 412,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    }
+   ],
+   "data": {
+    "bullets": [
+     "46 fire-rated plasterboards delivered to Neubau Schulzentrum Nord, Munich, with 4 units short-delivered and back-ordered for 21 October.",
+     "3 boards arrived with water damage on pallet 2, documented by photographs and signed by the site foreman.",
+     "Delivery completed between 07:40 and 09:15 by driver M. Keller using a crane lorry."
+    ],
+    "risk": "medium",
+    "risk_reason": "Shortage of 4 boards and water damage to 3 units may cause schedule delays or rework."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 9.91,
+     "raw": "{\n  \"bullets\": [\n    \"46 fire-rated plasterboards delivered to Neubau Schulzentrum Nord, Munich, with 4 units short-delivered and back-ordered for 21 October.\",\n    \"3 boards arrived with water damage on pallet 2, documented by photographs and signed by the site foreman.\",\n    \"Delivery completed between 07:40 and 09:15 by driver M. Keller using a crane lorry.\"\n  ],\n  \"risk\": \"medium\",\n  \"risk_reason\": \"Shortage of 4 boards and water damage to 3 units may cause schedule delays or rework.\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "summarise",
+   "doc": "site_incident_report.txt",
+   "seconds": 12.48,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 265,
+     "completion_tokens": 126,
+     "total_tokens": 391,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Stack of jointing compound buckets tipped over near lift shaft, causing a temporary slip hazard in the stairwell.",
+     "No injuries occurred, but the area required cleaning until 11:20 and the pallet was relocated to the ground floor.",
+     "Open actions include developing a storage plan for all levels and conducting a toolbox talk on stacking limits by 9 November."
+    ],
+    "risk": "medium",
+    "risk_reason": "Incident created a slip hazard and revealed systemic failures in storage planning and area barriers."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 12.48,
+     "raw": "{\n  \"bullets\": [\n    \"Stack of jointing compound buckets tipped over near lift shaft, causing a temporary slip hazard in the stairwell.\",\n    \"No injuries occurred, but the area required cleaning until 11:20 and the pallet was relocated to the ground floor.\",\n    \"Open actions include developing a storage plan for all levels and conducting a toolbox talk on stacking limits by 9 November.\"\n  ],\n  \"risk\": \"medium\",\n  \"risk_reason\": \"Incident created a slip hazard and revealed systemic failures in storage planning and area barriers.\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "summarise",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 10.34,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 233,
+     "completion_tokens": 151,
+     "total_tokens": 384,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "bullets": [
+     "15 mm Type F plasterboard achieves 90 min fire resistance in system FR-90 with 75 mm steel studs at 400 mm centres and double layers.",
+     "Maximum stud spacing is 600 mm for single layers, and the product is unsuitable for permanently wet areas without moisture-resistant board.",
+     "Fixing requires screws every 250 mm at edges and 300 mm in the field, with storage limited to 8 pallets high on level, dry surfaces."
+    ],
+    "risk": "low",
+    "risk_reason": "Standard product data with clear installation and storage constraints."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 10.34,
+     "raw": "{\n  \"bullets\": [\n    \"15 mm Type F plasterboard achieves 90 min fire resistance in system FR-90 with 75 mm steel studs at 400 mm centres and double layers.\",\n    \"Maximum stud spacing is 600 mm for single layers, and the product is unsuitable for permanently wet areas without moisture-resistant board.\",\n    \"Fixing requires screws every 250 mm at edges and 300 mm in the field, with storage limited to 8 pallets high on level, dry surfaces.\"\n  ],\n  \"risk\": \"low\",\n  \"risk_reason\": \"Standard product data with clear installation and storage constraints.\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "extract",
+   "doc": "delivery_note.txt",
+   "seconds": 7.55,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 281,
+     "completion_tokens": 112,
+     "total_tokens": 393,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "date": "2026-10-14",
+    "site": "Neubau Schulzentrum Nord, Munich",
+    "material": "Plasterboard 15 mm fire-rated 1200x2000",
+    "quantity": 46,
+    "unit": null,
+    "problem": "4 short-delivered, 3 boards damaged on arrival (water damage on pallet 2)",
+    "who_must_act": []
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 7.55,
+     "raw": "{\n  \"date\": \"2026-10-14\",\n  \"site\": \"Neubau Schulzentrum Nord, Munich\",\n  \"material\": \"Plasterboard 15 mm fire-rated 1200x2000\",\n  \"quantity\": 46,\n  \"unit\": null,\n  \"problem\": \"4 short-delivered, 3 boards damaged on arrival (water damage on pallet 2)\",\n  \"who_must_act\": []\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "extract",
+   "doc": "site_incident_report.txt",
+   "seconds": 7.28,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 274,
+     "completion_tokens": 113,
+     "total_tokens": 387,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "date": "2026-11-02",
+    "site": "Wohnanlage Lindenhof, building B, level 3",
+    "material": "jointing compound",
+    "quantity": 2,
+    "unit": "buckets",
+    "problem": "Two buckets split and compound reached the stairwell, creating a slip risk",
+    "who_must_act": [
+     "site manager",
+     "H&S officer"
+    ]
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 7.28,
+     "raw": "{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound\",\n  \"quantity\": 2,\n  \"unit\": \"buckets\",\n  \"problem\": \"Two buckets split and compound reached the stairwell, creating a slip risk\",\n  \"who_must_act\": [\n    \"site manager\",\n    \"H&S officer\"\n  ]\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "extract",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 3.2,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 242,
+     "completion_tokens": 42,
+     "total_tokens": 284,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "date": null,
+    "site": null,
+    "material": "Fire-rated plasterboard 15 mm, type F",
+    "quantity": null,
+    "unit": null,
+    "problem": null,
+    "who_must_act": []
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 3.2,
+     "raw": "{\"date\":null,\"site\":null,\"material\":\"Fire-rated plasterboard 15 mm, type F\",\"quantity\":null,\"unit\":null,\"problem\":null,\"who_must_act\":[]}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 0,
+   "task": "check",
+   "doc": "delivery_note.txt",
+   "seconds": 7.42,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 376,
+     "completion_tokens": 121,
+     "total_tokens": 497,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "order_id": "A-1003",
+    "product_matches": true,
+    "ordered_qty": 50,
+    "delivered_qty": 46,
+    "short_qty": 4,
+    "damaged_qty": 3,
+    "consistent": false,
+    "issues": [
+     "Short delivery of 4 units",
+     "3 units damaged on arrival"
+    ],
+    "next_action": "Reject damaged goods and request back-order delivery for 4 units"
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 7.42,
+     "raw": "{\n  \"order_id\": \"A-1003\",\n  \"product_matches\": true,\n  \"ordered_qty\": 50,\n  \"delivered_qty\": 46,\n  \"short_qty\": 4,\n  \"damaged_qty\": 3,\n  \"consistent\": false,\n  \"issues\": [\n    \"Short delivery of 4 units\",\n    \"3 units damaged on arrival\"\n  ],\n  \"next_action\": \"Reject damaged goods and request back-order delivery for 4 units\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "summarise",
+   "doc": "delivery_note.txt",
+   "seconds": 7.97,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 272,
+     "completion_tokens": 140,
+     "total_tokens": 412,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "bullets": [
+     "46 fire-rated plasterboards delivered to Neubau Schulzentrum Nord, Munich, with 4 units short-delivered and back-ordered for 21 October.",
+     "3 boards arrived with water damage on pallet 2, documented by photographs and signed by the site foreman.",
+     "Delivery completed between 07:40 and 09:15 by driver M. Keller using a crane lorry."
+    ],
+    "risk": "medium",
+    "risk_reason": "Shortage of 4 boards and water damage to 3 units may cause schedule delays or rework."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 7.97,
+     "raw": "{\n  \"bullets\": [\n    \"46 fire-rated plasterboards delivered to Neubau Schulzentrum Nord, Munich, with 4 units short-delivered and back-ordered for 21 October.\",\n    \"3 boards arrived with water damage on pallet 2, documented by photographs and signed by the site foreman.\",\n    \"Delivery completed between 07:40 and 09:15 by driver M. Keller using a crane lorry.\"\n  ],\n  \"risk\": \"medium\",\n  \"risk_reason\": \"Shortage of 4 boards and water damage to 3 units may cause schedule delays or rework.\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "summarise",
+   "doc": "site_incident_report.txt",
+   "seconds": 7.2,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 265,
+     "completion_tokens": 126,
+     "total_tokens": 391,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "bullets": [
+     "Stack of jointing compound buckets tipped over near lift shaft, causing a temporary slip hazard in the stairwell.",
+     "No injuries occurred, but the area required cleaning until 11:20 and the pallet was relocated to the ground floor.",
+     "Open actions include developing a storage plan for all levels and conducting a toolbox talk on stacking limits by 9 November."
+    ],
+    "risk": "medium",
+    "risk_reason": "Incident created a slip hazard and revealed systemic failures in storage planning and area barriers."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 7.2,
+     "raw": "{\n  \"bullets\": [\n    \"Stack of jointing compound buckets tipped over near lift shaft, causing a temporary slip hazard in the stairwell.\",\n    \"No injuries occurred, but the area required cleaning until 11:20 and the pallet was relocated to the ground floor.\",\n    \"Open actions include developing a storage plan for all levels and conducting a toolbox talk on stacking limits by 9 November.\"\n  ],\n  \"risk\": \"medium\",\n  \"risk_reason\": \"Incident created a slip hazard and revealed systemic failures in storage planning and area barriers.\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "summarise",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 8.89,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 233,
+     "completion_tokens": 151,
+     "total_tokens": 384,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "bullets": [
+     "15 mm Type F plasterboard achieves 90 min fire resistance in system FR-90 with 75 mm steel studs at 400 mm centres and double layers.",
+     "Maximum stud spacing is 600 mm for single layers, and the product is unsuitable for permanently wet areas without moisture-resistant board.",
+     "Fixing requires screws every 250 mm at edges and 300 mm in the field, with storage limited to 8 pallets high on level, dry surfaces."
+    ],
+    "risk": "low",
+    "risk_reason": "Standard product data with clear installation and storage constraints."
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 8.89,
+     "raw": "{\n  \"bullets\": [\n    \"15 mm Type F plasterboard achieves 90 min fire resistance in system FR-90 with 75 mm steel studs at 400 mm centres and double layers.\",\n    \"Maximum stud spacing is 600 mm for single layers, and the product is unsuitable for permanently wet areas without moisture-resistant board.\",\n    \"Fixing requires screws every 250 mm at edges and 300 mm in the field, with storage limited to 8 pallets high on level, dry surfaces.\"\n  ],\n  \"risk\": \"low\",\n  \"risk_reason\": \"Standard product data with clear installation and storage constraints.\"\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "extract",
+   "doc": "delivery_note.txt",
+   "seconds": 6.51,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 281,
+     "completion_tokens": 112,
+     "total_tokens": 393,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "date": "2026-10-14",
+    "site": "Neubau Schulzentrum Nord, Munich",
+    "material": "Plasterboard 15 mm fire-rated 1200x2000",
+    "quantity": 46,
+    "unit": null,
+    "problem": "4 short-delivered, 3 boards damaged on arrival (water damage on pallet 2)",
+    "who_must_act": []
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 6.51,
+     "raw": "{\n  \"date\": \"2026-10-14\",\n  \"site\": \"Neubau Schulzentrum Nord, Munich\",\n  \"material\": \"Plasterboard 15 mm fire-rated 1200x2000\",\n  \"quantity\": 46,\n  \"unit\": null,\n  \"problem\": \"4 short-delivered, 3 boards damaged on arrival (water damage on pallet 2)\",\n  \"who_must_act\": []\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "extract",
+   "doc": "site_incident_report.txt",
+   "seconds": 9.0,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 274,
+     "completion_tokens": 113,
+     "total_tokens": 387,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "date": "2026-11-02",
+    "site": "Wohnanlage Lindenhof, building B, level 3",
+    "material": "jointing compound",
+    "quantity": 2,
+    "unit": "buckets",
+    "problem": "Two buckets split and compound reached the stairwell, creating a slip risk",
+    "who_must_act": [
+     "site manager",
+     "H&S officer"
+    ]
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 9.0,
+     "raw": "{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound\",\n  \"quantity\": 2,\n  \"unit\": \"buckets\",\n  \"problem\": \"Two buckets split and compound reached the stairwell, creating a slip risk\",\n  \"who_must_act\": [\n    \"site manager\",\n    \"H&S officer\"\n  ]\n}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "extract",
+   "doc": "datasheet_excerpt.txt",
+   "seconds": 2.54,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 242,
+     "completion_tokens": 42,
+     "total_tokens": 284,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "date": null,
+    "site": null,
+    "material": "Fire-rated plasterboard 15 mm, type F",
+    "quantity": null,
+    "unit": null,
+    "problem": null,
+    "who_must_act": []
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 2.54,
+     "raw": "{\"date\":null,\"site\":null,\"material\":\"Fire-rated plasterboard 15 mm, type F\",\"quantity\":null,\"unit\":null,\"problem\":null,\"who_must_act\":[]}",
+     "problems": []
+    }
+   ]
+  },
+  {
+   "rep": 1,
+   "task": "check",
+   "doc": "delivery_note.txt",
+   "seconds": 7.73,
+   "attempts": 1,
+   "valid": true,
+   "usage": [
+    {
+     "prompt_tokens": 376,
+     "completion_tokens": 121,
+     "total_tokens": 497,
+     "prompt_tokens_details": {
+      "cached_tokens": 47
+     }
+    }
+   ],
+   "data": {
+    "order_id": "A-1003",
+    "product_matches": true,
+    "ordered_qty": 50,
+    "delivered_qty": 46,
+    "short_qty": 4,
+    "damaged_qty": 3,
+    "consistent": false,
+    "issues": [
+     "Short delivery of 4 units",
+     "3 units damaged on arrival"
+    ],
+    "next_action": "Reject damaged goods and request back-order delivery for 4 units"
+   },
+   "log": [
+    {
+     "attempt": 1,
+     "seconds": 7.73,
+     "raw": "{\n  \"order_id\": \"A-1003\",\n  \"product_matches\": true,\n  \"ordered_qty\": 50,\n  \"delivered_qty\": 46,\n  \"short_qty\": 4,\n  \"damaged_qty\": 3,\n  \"consistent\": false,\n  \"issues\": [\n    \"Short delivery of 4 units\",\n    \"3 units damaged on arrival\"\n  ],\n  \"next_action\": \"Reject damaged goods and request back-order delivery for 4 units\"\n}",
+     "problems": []
+    }
+   ]
+  }
+ ]
+}

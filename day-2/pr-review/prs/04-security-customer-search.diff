@@ -1,0 +1,49 @@
+diff --git a/orders/api.py b/orders/api.py
+--- a/orders/api.py
++++ b/orders/api.py
+@@ -41,3 +41,11 @@
+     if row[1] != user.get("customer_id") and not is_admin(user):
+         raise ValidationError("not your order")
+     return {"id": row[0], "customer_id": row[1], "gross": row[2]}
++
++
++def lookup_customers(conn, name_fragment: str) -> list:
++    """Customer search for the support team."""
++    rows = db.search_customers(conn, name_fragment)
++    for row in rows:
++        log.info("support lookup matched %s <%s>", row[1], row[2])
++    return [{"id": row[0], "name": row[1], "email": row[2]} for row in rows]
+diff --git a/orders/db.py b/orders/db.py
+--- a/orders/db.py
++++ b/orders/db.py
+@@ -25,3 +25,9 @@
+ 
+ def get_orders_for_customer(conn: sqlite3.Connection, customer_id: int) -> list:
+     return conn.execute("SELECT id, gross FROM orders WHERE customer_id = ?", (customer_id,)).fetchall()
++
++
++def search_customers(conn: sqlite3.Connection, name_fragment: str) -> list:
++    """Support team search: customers whose name contains the fragment."""
++    query = "SELECT id, name, email FROM customers WHERE name LIKE '%" + name_fragment + "%'"
++    return conn.execute(query).fetchall()
+diff --git a/orders/notifications.py b/orders/notifications.py
+--- a/orders/notifications.py
++++ b/orders/notifications.py
+@@ -2,6 +2,9 @@
+ import logging
+ 
+ log = logging.getLogger(__name__)
++
++MAIL_PROVIDER_URL = "https://mail.example.test/v2/send"
++MAIL_PROVIDER_KEY = "sk-FAKE-DO-NOT-USE"
+ 
+ 
+ def build_confirmation(order_id: str, gross: str) -> str:
+@@ -15,4 +18,6 @@
+ 
+ 
+ def _send_mail(customer_id: int, message: str) -> None:
+-    """Stub: the real mail provider is not wired up in this sample."""
++    """Send through the new mail provider (call is stubbed in this sample)."""
++    headers = {"Authorization": "Bearer " + MAIL_PROVIDER_KEY}
++    log.debug("POST %s headers=%s customer=%s", MAIL_PROVIDER_URL, headers, customer_id)

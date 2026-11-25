@@ -1,0 +1,27 @@
+
+=== delivery_note.txt
+{
+  "date": "2026-10-14",
+  "site": "Neubau Schulzentrum Nord, Munich",
+  "material": "Plasterboard 15 mm fire-rated",
+  "quantity": 46,
+  "problem": "3 boards were damaged on arrival due to water damage on pallet 2.",
+  "owner": null,
+  "risk": "medium"
+}
+RESULT: PASS (attempt 1 of 2)
+
+=== site_incident_report.txt
+{
+  "date": "2026-11-02",
+  "site": "Wohnanlage Lindenhof, building B, level 3",
+  "material": "jointing compound",
+  "quantity": null,
+  "problem": "A stack of jointing compound buckets tipped over when the lift was called, causing two buckets to split and spill compound into the stairwell.",
+  "owner": "site manager",
+  "risk": "medium"
+}
+RESULT: PASS (attempt 1 of 2)
+
+Summary: 2 of 2 documents passed validation.
+Passing validation means the SHAPE is right, not that the values are true. Check them against the document.

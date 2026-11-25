@@ -1,0 +1,247 @@
+{
+ "01-typo-docs": {
+  "secs": 4.7,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This pull request updates documentation in the README and coding standards files to fix minor wording issues and clarify that old abbreviations are still being cleaned up.",
+   "risk": "low",
+   "risk_reasons": [
+    "Documentation-only changes pose no risk to functionality or security."
+   ],
+   "findings": [],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "02-delivery-date-feature": {
+  "secs": 4.2,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a new module to calculate estimated delivery dates based on working days (excluding weekends and public holidays), along with corresponding unit tests.",
+   "risk": "low",
+   "risk_reasons": [
+    "The logic correctly skips weekends by checking `weekday() < 5`, which aligns with the requirement for working days only.",
+    "Tests cover key scenarios including standard delivery, express delivery, weekend orders, and edge cases like zero or negative days."
+   ],
+   "findings": [],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "03-money-rounding": {
+  "secs": 23.0,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This change adds a 10% bulk discount for order lines with 100+ pieces and includes unit tests. It modifies the pricing logic to apply this discount and updates the contract discount calculation.",
+   "risk": "medium",
+   "risk_reasons": [
+    "The code converts Decimal values to float, violating the standard that money must always be handled as Decimal.",
+    "The rounding logic is inconsistent with the team's requirement to round once per line total using ROUND_HALF_UP.",
+    "The boundary condition for the bulk discount excludes exactly 100 pieces, which contradicts the description stating '100 pieces or more'.",
+    "The test suite does not cover the boundary case of exactly 100 pieces.",
+    "The function signature returns a float instead of Decimal."
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 21,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function `bulk_unit_price` converts the input `unit_price` (a Decimal) to a float. Standard #2 mandates that money is always `Decimal`, never `float`. Using float introduces precision errors.",
+     "suggested_fix": "Remove the conversion to float and perform calculations using Decimal arithmetic."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 23,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function returns a `float` instead of a `Decimal`. This violates Standard #2 which requires money to be sent as strings or Decimals.",
+     "suggested_fix": "Return a Decimal value calculated entirely within the function."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 30,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The `line_total` function converts `CONTRACT_DISCOUNT` to float and performs multiplication with a float. This violates Standard #2.",
+     "suggested_fix": "Use Decimal arithmetic for the contract discount calculation."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 31,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The function uses `round(price * quantity, 2)` which is not the team's standard rounding method (`ROUND_HALF_UP` once per line total).",
+     "suggested_fix": "Use `Decimal(str(price * quantity)).quantize(CENT, rounding=ROUND_HALF_UP)`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 12,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The boundary condition `quantity > BULK_DISCOUNT_FROM` excludes exactly 100 pieces. Standard #8 requires boundaries to be explicitly documented and tested.",
+     "suggested_fix": "Change the condition to `quantity >= BULK_DISCOUNT_FROM` and update the docstring."
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 10,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The test `test_large_order_gets_ten_percent_off` uses 200 pieces but does not test the boundary case of exactly 100 pieces as required by Standard #8.",
+     "suggested_fix": "Add a test case for `quantity == 100` to verify it receives the discount."
+    }
+   ],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 6 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "04-security-customer-search": {
+  "secs": 13.4,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a customer search function to the support team and switches order confirmations to a new mail provider, but introduces critical security flaws by hardcoding credentials and violating SQL injection prevention rules.",
+   "risk": "high",
+   "risk_reasons": [
+    "Hardcoded API key in code violates standard #5 (No secrets in code).",
+    "SQL query concatenation with string formatting violates standard #4 (SQL uses parameters).",
+    "Logging customer email addresses violates standard #6 (Logging carries no personal data)."
+   ],
+   "findings": [
+    {
+     "file": "orders/notifications.py",
+     "line": 10,
+     "severity": "high",
+     "category": "security",
+     "explanation": "The API key 'sk-FAKE-DO-NOT-USE' is hardcoded directly in the source code instead of being loaded from an environment variable via config.py.",
+     "suggested_fix": "Remove the hardcoded key and import it from config.py using os.getenv('MAIL_PROVIDER_KEY') or similar."
+    },
+    {
+     "file": "orders/db.py",
+     "line": 31,
+     "severity": "high",
+     "category": "security",
+     "explanation": "The SQL query is constructed by concatenating the user input directly into the string, which violates standard #4 and creates a severe SQL injection vulnerability.",
+     "suggested_fix": "Use parameterized queries: conn.execute(\"SELECT id, name, email FROM customers WHERE name LIKE ?\", ('%' + name_fragment + '%',))."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 47,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The log statement includes the customer's email address, which violates standard #6 that forbids logging personal data like emails.",
+     "suggested_fix": "Log only the order ID or a sanitized identifier instead of the full email address."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[block] an added line looks like a hard-coded secret",
+   "[block] an added line looks like SQL built from strings",
+   "[human_review] code changed but no test file changed",
+   "[block] the model reported a security finding",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "05-rename-reports": {
+  "secs": 11.1,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This pull request renames abbreviated variable names (cust, qty, amt) to their full forms (customer, quantity, amount) in orders/export.py and updates the docstring to reflect this change. | This pull request renames abbreviated variable names (e.g., `cust` to `customer`, `amt` to `amount`) in the reports module to comply with standard 1, and updates docstrings to reflect this change.",
+   "risk": "low",
+   "risk_reasons": [
+    "The change is purely cosmetic regarding naming conventions and does not alter any logic or behavior.",
+    "All functions remain consistent with existing coding standards for money handling (Decimal), SQL usage, and error handling.",
+    "No new dependencies are introduced, and no external inputs are modified."
+   ],
+   "findings": [],
+   "recommendation": "approve",
+   "incomplete": false
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 12.1,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a `refund_order` handler in `api.py` and a `refund` function in `payments.py` to handle refunds via the payment gateway. It introduces new code for refunding orders but lacks corresponding tests, type hints on the public API function, and proper error handling using the project's exception classes.",
+   "risk": "medium",
+   "risk_reasons": [
+    "No tests are included for the new `refund` functionality, violating standard rule 9.",
+    "The code does not use the project's `ValidationError` class for input validation or error handling.",
+    "Missing type hints on the public function `refund_order` in `api.py`."
+   ],
+   "findings": [
+    {
+     "file": "orders/api.py",
+     "line": 47,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The function `refund_order` lacks type hints for its parameters and return value, violating rule 10.",
+     "suggested_fix": "Add type hints: `def refund_order(conn: Connection, order_id: str, amount: Decimal) -> str:`"
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 34,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The function `refund` lacks type hints for its parameters and return value, violating rule 10.",
+     "suggested_fix": "Add type hints: `def refund(order_id: str, amount: Decimal) -> str:`"
+    },
+    {
+     "file": "orders/api.py",
+     "line": 48,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The code raises a bare `ValidationError` with an f-string instead of using the standard library's exception class properly or following the project's pattern for specific errors.",
+     "suggested_fix": "Use the existing `ValidationError` from `orders.errors` correctly, ensuring it is raised only when appropriate validation fails."
+    }
+   ],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

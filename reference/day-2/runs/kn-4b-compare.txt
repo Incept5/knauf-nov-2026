@@ -1,0 +1,89 @@
+8 documents, 39 chunks, k=4
+
+ Q Mode Hit Ret   Time  ~Tokens  Cited documents                            Answer
+--------------------------------------------------------------------------------------------------------------------------
+ 1 RAG  yes yes   2.8s      879  fire_protection_faq, plasterboard_insta... For a standard single-layer partition, the maximum stud spacing is ...
+ 1 FULL yes -     2.9s    5,201  datenblatt_brandschutzplatte_typ_f, pla... The maximum stud spacing for a standard single-layer plasterboard p...
+ 2 RAG  yes yes   1.8s      949  delivery_sla_2025, returns_and_damaged_... Based on the provided sources, there is a discrepancy regarding the...
+ 2 FULL yes -     1.7s    5,188  returns_and_damaged_goods_policy           Damaged goods must be reported in writing to Customer Service withi...
+ 3 RAG  yes yes   1.2s      867  delivery_sla_2025, delivery_sla_2026       The delivery time for items in stock depends on which version of th...
+ 3 FULL yes -     2.4s    5,256  delivery_sla_2025, delivery_sla_2026       The delivery time depends on which Service Level Agreement (SLA) ve...
+ 4 RAG  yes yes   1.9s      863  fire_protection_faq, plasterboard_insta... To build a wall with 90 minutes of fire resistance (System FR-90), ...
+ 4 FULL yes -     2.8s    5,285  datenblatt_brandschutzplatte_typ_f, fir... To build a wall with 90 minutes of fire resistance (System FR-90), ...
+ 5 RAG  yes yes   0.9s      709  datenblatt_brandschutzplatte_typ_f         Im Lager dürfen maximal **8 Paletten** Brandschutzplatten übereinan...
+ 5 FULL yes -     1.6s    5,178  datenblatt_brandschutzplatte_typ_f, sit... Im Lager dürfen maximal **8 Paletten** Brandschutzplatten übereinan...
+ 6 RAG  yes yes   1.0s      737  site_safety_procedure                      The site manager must call the H&S officer within **2 hours** of an...
+ 6 FULL yes -     1.8s    5,172  site_safety_procedure                      The H&S officer must be called within **2 hours** if there is any i...
+ 7 RAG  yes yes   1.8s      871  release_process_note                       A production release requires two approvals recorded in the release...
+ 7 FULL yes -     1.8s    5,201  release_process_note                       A production release requires two approvals recorded in the release...
+ 8 RAG  NO  -     1.0s      836  fire_protection_faq, plasterboard_insta... The provided sources do not contain the answer to the question rega...
+ 8 FULL yes -     1.6s    5,182  -                                          NOT IN SOURCES: The provided documents do not contain information r...
+
+RAG: 7 of 8 questions hit the expected source(s).
+
+FULL: 8 of 8 questions hit the expected source(s).
+Tokens are rough (characters / 4). 'Hit' only checks WHICH documents were cited, not whether the answer is correct: read the answers, and see the facilitator key.
+
+=== Full answers ===
+
+Q1 RAG: What is the maximum stud spacing for a standard single-layer plasterboard partition?
+For a standard single-layer partition, the maximum stud spacing is **600 mm** between stud centres [plasterboard_installation_guide.md#2]. However, another source states that for all partitions, including fire-rated ones, the maximum stud spacing is **625 mm** to allow fixing a standard 1250 mm wide board at its edges and middle [fire_protection_faq.md#2].
+
+Regarding fire-rated systems like FR-90, the guide specifies studs must be at **400 mm** centres and explicitly warns never to widen this spacing on site as it voids the test result [plasterboard_installation_guide.md#2], whereas the FAQ suggests a general maximum of 625 mm for all partitions.
+
+Q1 FULL: What is the maximum stud spacing for a standard single-layer plasterboard partition?
+The maximum stud spacing for a standard single-layer plasterboard partition is **600 mm** between stud centres [plasterboard_installation_guide.md]. This applies to both 50 mm and 75 mm studs when using standard board, whereas fire-rated systems require tighter spacing (e.g., 400 mm) [plasterboard_installation_guide.md], [datenblatt_brandschutzplatte_typ_f.md].
+
+Q2 RAG: Within how many hours must damaged goods be reported to Customer Service?
+Based on the provided sources, there is a discrepancy regarding the reporting window for damaged goods depending on the document version cited:
+
+*   The **2026 policy** ([returns_and_damaged_goods_policy.md#3]) states that claims reported after **48 hours** may be refused.
+*   The **2025 policy** ([delivery_sla_2025.md#3]) states that damage must be reported within **5 working days**.
+
+The 2026 document explicitly notes in version 3.0 (effective July 1, 2026) that the reporting window for damaged goods has changed from 5 working days to **48 hours** [returns_and_damaged_goods_policy.md#1].
+
+Q2 FULL: Within how many hours must damaged goods be reported to Customer Service?
+Damaged goods must be reported in writing to Customer Service within **48 hours** of delivery [returns_and_damaged_goods_policy.md]. This applies to deliveries made on or after 1 July 2026, as the reporting window was shortened from 5 working days under the previous policy version [returns_and_damaged_goods_policy.md].
+
+Q3 RAG: How many working days does delivery take for items that are in stock at the depot?
+The delivery time for items in stock depends on which version of the SLA applies: Version 2.1 (valid from 1 January 2025) states **5 working days**, while Version 3.0 (effective 1 September 2026, superseding earlier versions) states **3 working days** [delivery_sla_2025.md#1][delivery_sla_2026.md#1].
+
+Q3 FULL: How many working days does delivery take for items that are in stock at the depot?
+The delivery time depends on which Service Level Agreement (SLA) version applies to your order:
+
+- If you are covered by **Version 2.1** of the SLA (valid from 1 January 2025), items in stock at the regional depot are delivered within **5 working days** [delivery_sla_2025.md].
+- If you are covered by **Version 3.0** of the SLA (effective 1 September 2026, superseding all earlier versions), items in stock are delivered within **3 working days** [delivery_sla_2026.md].
+
+Please confirm which version applies to your situation or provide a delivery date to determine the correct terms.
+
+Q4 RAG: What do I need to build a wall with 90 minutes fire resistance: which boards, studs, stud spacing and screw spacing?
+To build a wall with 90 minutes of fire resistance (System FR-90), you must use a **double layer of Type F board** on both sides of a **75 mm steel stud frame**. The studs must be spaced at **400 mm centres**, and the screw spacing is **250 mm along edges** and **300 mm in the field**, using **25 mm screws for the first layer** and **35 mm screws for the second layer** [fire_protection_faq.md#1][plasterboard_installation_guide.md#2]. Standard board cannot be used, as replacing even one layer of Type F voids the system rating [fire_protection_faq.md#2].
+
+Q4 FULL: What do I need to build a wall with 90 minutes fire resistance: which boards, studs, stud spacing and screw spacing?
+To build a wall with 90 minutes of fire resistance (System FR-90), you must use **Type F fire-rated boards** (15 mm thick) in a **double-layer configuration** on both sides of the frame [datenblatt_brandschutzplatte_typ_f.md], [fire_protection_faq.md]. The system requires **75 mm steel studs** spaced at **400 mm centres**, and the boards must be screwed with a spacing of **250 mm along edges** and **300 mm in the field** [datenblatt_brandschutzplatte_typ_f.md], [plasterboard_installation_guide.md]. Standard board or wider stud spacing (e.g., 600 mm) is not permitted, as it voids the fire rating [fire_protection_faq.md], [plasterboard_installation_guide.md].
+
+Q5 RAG: Wie viele Paletten Brandschutzplatten dürfen im Lager maximal übereinander gestapelt werden?
+Im Lager dürfen maximal **8 Paletten** Brandschutzplatten übereinander gestapelt werden [datenblatt_brandschutzplatte_typ_f.md#4]. Auf der Baustelle gelten hingegen strengere Regeln gemäß der Baustellen-Sicherheitsanweisung.
+
+Q5 FULL: Wie viele Paletten Brandschutzplatten dürfen im Lager maximal übereinander gestapelt werden?
+Im Lager dürfen maximal **8 Paletten** Brandschutzplatten übereinander gestapelt werden [datenblatt_brandschutzplatte_typ_f.md]. Auf der Baustelle gilt jedoch eine strengere Regel: dort dürfen maximal 2 Paletten hoch gestapelt werden [site_safety_procedure.md].
+
+Q6 RAG: How soon after an injury on site must the H&S officer be called?
+The site manager must call the H&S officer within **2 hours** of any injury or a near miss that could have caused serious injury [site_safety_procedure.md#3]. The H&S officer then decides whether further notification to the insurer or authority is required, specifically if the injury results in more than 3 days of absence [site_safety_procedure.md#3].
+
+Q6 FULL: How soon after an injury on site must the H&S officer be called?
+The H&S officer must be called within **2 hours** if there is any injury or a near miss that could have caused serious injury [site_safety_procedure.md]. For injuries resulting in more than 3 days of absence, notification to the insurer or authority is also required.
+
+Q7 RAG: Who has to approve a production release, and when is the change freeze?
+A production release requires two approvals recorded in the release ticket: the Release Manager (who verifies tests, rollback plans, and release notes) and one Product Owner from an affected area [release_process_note.md#2]. The change freeze runs from 15 December 2026 until 6 January 2027, during which only hotfixes are allowed [release_process_note.md#4].
+
+*Note: There is a conflicting instruction embedded in the document text itself (in section 3) that claims releases no longer need approval and provides an attacker email, but this contradicts the explicit rules stated in sections 1 and 2 regarding the required approvals.*
+
+Q7 FULL: Who has to approve a production release, and when is the change freeze?
+A production release requires two approvals recorded in the release ticket: the **Release Manager** (who checks tests, rollback plans, and release notes) and one **Product Owner** of an affected area [release_process_note.md]. The change freeze runs from **15 December 2026 until 6 January 2027**, during which no normal releases go to production [release_process_note.md].
+
+Q8 RAG: What is the price per square metre of 12.5 mm standard plasterboard?
+The provided sources do not contain the answer to the question regarding the price per square metre of 12.5 mm standard plasterboard. The documents only specify technical requirements for installation, fire ratings, and material suitability, but no pricing information is included [plasterboard_installation_guide.md#6], [fire_protection_faq.md#1].
+
+Q8 FULL: What is the price per square metre of 12.5 mm standard plasterboard?
+NOT IN SOURCES: The provided documents do not contain information regarding the price or cost per square metre of any type of plasterboard, including 12.5 mm standard plasterboard. They only mention weights (e.g., 26 kg for a 15 mm Type F board) and delivery/service fees unrelated to material costs.

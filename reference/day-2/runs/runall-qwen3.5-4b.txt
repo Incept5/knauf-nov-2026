@@ -1,0 +1,42 @@
+PR                           model risk  model says          gate decision         time
+-----------------------------------------------------------------------------------------
+01-typo-docs                 low         approve             auto_merge_candidate  4.3s
+02-delivery-date-feature     low         approve             auto_merge_candidate  4.1s
+03-money-rounding            medium      needs_human_review  human_review          23.8s
+04-security-customer-search  high        block               block                 13.8s
+05-rename-reports            low         approve             human_review          11.0s
+06-refund-endpoint           medium      needs_human_review  human_review          14.3s
+
+Where 'model says' and 'gate decision' differ, the rules overrode the AI. That is the design.
+
+01-typo-docs: auto_merge_candidate
+  - no rule fired and the model agrees: safe to auto-merge once required CI checks pass
+
+02-delivery-date-feature: auto_merge_candidate
+  - no rule fired and the model agrees: safe to auto-merge once required CI checks pass
+
+03-money-rounding: human_review
+  - [human_review] touches a payment/pricing/auth path: orders/pricing.py
+  - [human_review] the model recommends 'needs_human_review'
+  - [human_review] the model rates the risk 'medium'
+  - [human_review] the model reported 6 medium/high finding(s)
+
+04-security-customer-search: block
+  - [block] an added line looks like a hard-coded secret
+  - [block] an added line looks like SQL built from strings
+  - [human_review] code changed but no test file changed
+  - [block] the model reported a security finding
+  - [block] the model recommends blocking
+  - [human_review] the model rates the risk 'high'
+  - [human_review] the model reported 3 medium/high finding(s)
+
+05-rename-reports: human_review
+  - [human_review] 482 changed lines is more than 150
+  - [human_review] code changed but no test file changed
+
+06-refund-endpoint: human_review
+  - [human_review] touches a payment/pricing/auth path: orders/payments.py
+  - [human_review] code changed but no test file changed
+  - [human_review] the model recommends 'needs_human_review'
+  - [human_review] the model rates the risk 'medium'
+  - [human_review] the model reported 3 medium/high finding(s)

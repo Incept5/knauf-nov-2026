@@ -1,0 +1,7 @@
+--- Answer ---
+The maximum stud spacing for a standard single-layer plasterboard partition is **600 mm** between centres [plasterboard_installation_guide.md]. This applies to both 50 mm and 75 mm studs when using standard board, whereas fire-rated systems require tighter spacing (400 mm) [plasterboard_installation_guide.md], [datenblatt_brandschutzplatte_typ_f.md].
+
+--- Documents mentioned in the answer ---
+  datenblatt_brandschutzplatte_typ_f.md, plasterboard_installation_guide.md
+
+Time 1.7s | prompt+answer ~5,199 tokens (rough: characters / 4) | 8 documents, 19,983 characters sent

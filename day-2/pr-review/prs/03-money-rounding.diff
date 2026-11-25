@@ -1,0 +1,57 @@
+diff --git a/orders/pricing.py b/orders/pricing.py
+--- a/orders/pricing.py
++++ b/orders/pricing.py
+@@ -8,6 +8,8 @@
+ FREE_DELIVERY_OVER = Decimal("500.00")   # net total must be strictly above this
+ DELIVERY_FEE = Decimal("45.00")
+ CONTRACT_DISCOUNT = Decimal("0.08")      # 8% off for contract customers
++BULK_DISCOUNT_FROM = 100                 # pieces per line
++BULK_DISCOUNT_RATE = 0.10                # 10% off the unit price
+ 
+ 
+ def to_money(value) -> Decimal:
+@@ -15,12 +17,20 @@
+     return Decimal(str(value)).quantize(CENT, rounding=ROUND_HALF_UP)
+ 
+ 
++def bulk_unit_price(unit_price: Decimal, quantity: int) -> float:
++    """Unit price in EUR after the bulk discount: 10% off for 100 pieces or more on one line."""
++    price = float(unit_price)
++    if quantity > BULK_DISCOUNT_FROM:
++        price = price * (1 - BULK_DISCOUNT_RATE)
++    return price
++
++
+ def line_total(unit_price: Decimal, quantity: int, contract: bool) -> Decimal:
+     """Net price of one order line in EUR."""
+-    price = unit_price
++    price = bulk_unit_price(unit_price, quantity)
+     if contract:
+-        price = price * (Decimal("1") - CONTRACT_DISCOUNT)
+-    return to_money(price * quantity)
++        price = price * (1 - float(CONTRACT_DISCOUNT))
++    return to_money(round(price * quantity, 2))
+ 
+ 
+ def delivery_fee(net_total: Decimal) -> Decimal:
+diff --git a/tests/test_bulk_discount.py b/tests/test_bulk_discount.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_bulk_discount.py
+@@ -0,0 +1,16 @@
++import unittest
++from decimal import Decimal
++
++from orders.pricing import line_total
++
++
++class BulkDiscountTests(unittest.TestCase):
++    def test_large_order_gets_ten_percent_off(self):
++        self.assertEqual(line_total(Decimal("10.00"), 200, False), Decimal("1800.00"))
++
++    def test_small_order_pays_full_price(self):
++        self.assertEqual(line_total(Decimal("10.00"), 5, False), Decimal("50.00"))
++
++
++if __name__ == "__main__":
++    unittest.main()

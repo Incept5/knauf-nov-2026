@@ -1,0 +1,11 @@
+{
+  "_label": "CANNED EXAMPLE written by the workshop team. Not real model output.",
+  "summary": "Wording fixes in README.md and CODING-STANDARDS.md. No code is touched.",
+  "risk": "low",
+  "risk_reasons": [
+    "documentation only",
+    "no behaviour change"
+  ],
+  "findings": [],
+  "recommendation": "approve"
+}

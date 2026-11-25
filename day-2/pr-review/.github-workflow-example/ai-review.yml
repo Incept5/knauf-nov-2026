@@ -1,0 +1,68 @@
+# ILLUSTRATIVE SKETCH ONLY. This file has never been run by us.
+# It shows how review.py + risk_gate.py could sit in a GitHub pull request workflow.
+# It must be adapted to Knauf's setup before use: GitHub Copilot is what Knauf uses today, so a real rollout
+# might use Copilot code review for the "advice" step and keep ONLY risk_gate.py-style rules as the deterministic
+# part. Also check: which model endpoint Zscaler allows from GitHub-hosted runners (a self-hosted runner may
+# be needed), where the scripts live (copy them into a shared repo or an internal action), and who owns the rules.
+#
+# Secrets are referenced by name only. Create them in the repository settings; never put a key in this file.
+
+name: ai-review
+
+on:
+  pull_request:                       # NOT pull_request_target: forks must not get our secrets
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write                # to post the comment and set labels
+
+jobs:
+  ai-review-gate:                     # make THIS job name a "required status check" in branch protection
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0              # we need the base branch to build the diff
+
+      - name: Build the diff
+        run: git diff "origin/${{ github.base_ref }}...HEAD" > pr.diff
+
+      - name: AI review (advice only)
+        env:
+          INCEPT5_API_KEY: ${{ secrets.INCEPT5_API_KEY }}     # or ASTRA_KEY and LLM_ASTRA_BASE with LLM_BACKEND=astra
+        run: |
+          python3 tools/pr-review/review.py pr.diff --save review.json --json > /dev/null || echo '{}' > review.json
+          # If the model call fails we still continue: an empty review makes the gate say human_review, never auto-merge.
+
+      - name: Deterministic gate (this decides)
+        id: gate
+        run: |
+          set +e
+          python3 tools/pr-review/risk_gate.py pr.diff review.json --json > gate.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat gate.json
+
+      - name: Post a comment and label the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DECISION=$(python3 -c "import json; print(json.load(open('gate.json'))['decision'])")
+          {
+            echo "### AI review: gate says \`$DECISION\`"
+            echo
+            python3 -c "import json; [print('- ' + r) for r in json.load(open('gate.json'))['reasons']]"
+            echo
+            echo "_The AI advises; fixed rules decide. A person still approves anything marked human_review or block._"
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+          gh pr edit "${{ github.event.pull_request.number }}" --add-label "gate:$DECISION"
+
+      - name: Fail the required check only when blocked
+        if: steps.gate.outputs.exit_code == '2'
+        run: |
+          echo "Blocked by the gate. See the comment on the pull request."
+          exit 1
+        # human_review passes the check but also needs a CODEOWNERS approval (branch protection).
+        # auto_merge_candidate may be merged automatically once the normal CI tests are green.

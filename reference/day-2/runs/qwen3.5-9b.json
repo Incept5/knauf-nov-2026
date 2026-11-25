@@ -1,0 +1,252 @@
+{
+ "01-typo-docs": {
+  "secs": 3.9,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This pull request claims to be documentation-only but modifies two Markdown files (CODING-STANDARDS.md and README.md). The changes alter wording in the coding standards regarding abbreviation cleanup and add a parenthetical clarification about the payment gateway in the README.",
+   "risk": "medium",
+   "risk_reasons": [
+    "The PR description states 'No code changes', but the diff modifies Markdown files which are part of the repository's content.",
+    "Changing the wording in CODING-STANDARDS.md from 'are being cleaned up' to 'are still being cleaned up' alters the documented state of the project without a corresponding behavior change or test update, potentially misleading reviewers about the timeline for cleanup.",
+    "Adding '(fictional)' before 'payment gateway' in README.md changes the description of the system's architecture, which could be considered a behavioral/documentation change rather than a pure wording fix."
+   ],
+   "findings": [],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'"
+  ],
+  "err": ""
+ },
+ "02-delivery-date-feature": {
+  "secs": 3.0,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR introduces a new module to calculate estimated delivery dates based on working days, including tests for standard and express shipping scenarios.",
+   "risk": "low",
+   "risk_reasons": [
+    "New feature addition with corresponding tests.",
+    "No changes to existing business logic or data structures.",
+    "Code follows naming conventions (snake_case) and uses standard library only."
+   ],
+   "findings": [],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "03-money-rounding": {
+  "secs": 14.2,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a 10% bulk discount for order lines with quantities over 100 pieces and includes basic tests. However, the implementation violates multiple coding standards regarding money handling, boundary conditions, and input validation.",
+   "risk": "high",
+   "risk_reasons": [
+    "Money is calculated using float arithmetic instead of Decimal, violating standard #2.",
+    "The discount applies for quantity > 100, but the description implies '100 pieces or more', creating a boundary mismatch (standard #8).",
+    "Input validation is missing; the function accepts any integer without checking if it's positive (standard #3).",
+    "The new test file uses float assertions for money values instead of Decimal.",
+    "The line_total function now returns a float, breaking the contract that money must be returned as Decimal or string."
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 21,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The bulk_unit_price function converts the unit price to float immediately. This violates standard #2 (Money is Decimal, never float). Calculations with floats introduce precision errors.",
+     "suggested_fix": "Keep all money calculations in Decimal. Use Decimal('10') for the rate or convert back to Decimal before multiplication."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 24,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The condition `if quantity > BULK_DISCOUNT_FROM` excludes exactly 100 pieces. The description says '100 pieces or more'. This violates standard #8 (Boundaries are written down and tested).",
+     "suggested_fix": "Change the condition to `if quantity >= BULK_DISCOUNT_FROM`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 29,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The function returns a float (`return price`). Standard #2 requires money to be Decimal or string. This breaks the API contract for callers expecting Decimal.",
+     "suggested_fix": "Return `to_money(price * quantity)` or ensure the return type is Decimal."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 30,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The contract discount calculation uses `float(CONTRACT_DISCOUNT)`. This reintroduces float arithmetic for money. Standard #2 requires Decimal.",
+     "suggested_fix": "Use `Decimal('0.08')` directly or keep it as a Decimal constant."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 31,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The function `to_money` is called but its result is rounded again with `round(price * quantity, 2)`. The `to_money` function already quantizes to cents. This double rounding is unnecessary and potentially confusing.",
+     "suggested_fix": "Remove the manual `round(...)` call and rely on `to_money`."
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 10,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The test asserts against a float value (`Decimal(",
+     "suggested_fix": ""
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 6 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "04-security-customer-search": {
+  "secs": 14.8,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a customer search feature and switches the mail provider configuration. However, the implementation introduces critical security vulnerabilities by hardcoding secrets and using unsafe SQL string concatenation.",
+   "risk": "high",
+   "risk_reasons": [
+    "Hardcoded API key in notifications.py violates standard #5 (No secrets in code).",
+    "SQL query in db.py uses string concatenation instead of parameters, violating standard #4 and risking SQL injection.",
+    "Logging personal data (email) in api.py violates standard #6."
+   ],
+   "findings": [
+    {
+     "file": "orders/notifications.py",
+     "line": 5,
+     "severity": "high",
+     "category": "security",
+     "explanation": "Hardcoded API key (MAIL_PROVIDER_KEY) and URL are present in the code. Standard #5 requires secrets to come from environment variables via config.py.",
+     "suggested_fix": "Remove hardcoded values and import them from config.py using os.environ or a dedicated config module."
+    },
+    {
+     "file": "orders/db.py",
+     "line": 30,
+     "severity": "high",
+     "category": "security",
+     "explanation": "The SQL query builds the WHERE clause using string concatenation ('%' + name_fragment + '%'). Standard #4 forbids this and requires parameterized queries to prevent SQL injection.",
+     "suggested_fix": "Use a placeholder in the query: 'SELECT ... WHERE name LIKE ?' and pass ('%{fragment}%',) as the tuple argument."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 48,
+     "severity": "medium",
+     "category": "security",
+     "explanation": "The log statement includes row[2] (email address). Standard #6 forbids logging personal data like names, emails, or addresses.",
+     "suggested_fix": "Remove the email from the log message. Log only order_id and customer_id."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[block] an added line looks like a hard-coded secret",
+   "[block] an added line looks like SQL built from strings",
+   "[human_review] code changed but no test file changed",
+   "[block] the model reported a security finding",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "05-rename-reports": {
+  "secs": 14.0,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This pull request renames abbreviated variable names (e.g., 'inv' to 'invoice', 'cust_id' to 'customer_id') in orders/export.py to comply with the team's naming standards requiring full words. | This pull request renames abbreviated variable names in reports.py to full words (e.g., cust -> customer, qty -> quantity) as per standard 1, without changing behavior.",
+   "risk": "low",
+   "risk_reasons": [
+    "The change is purely cosmetic and does not alter logic, behavior, or data processing.",
+    "No new dependencies or security issues are introduced.",
+    "The change is purely mechanical renaming with no logic modifications.",
+    "No new dependencies or security issues introduced."
+   ],
+   "findings": [],
+   "recommendation": "approve",
+   "incomplete": false
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 19.6,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a refund handler in payments.py and exposes a new endpoint in api.py to process refunds via the payment gateway.",
+   "risk": "medium",
+   "risk_reasons": [
+    "New code path introduced without corresponding tests (violates Standard #9).",
+    "Logging statement in api.py logs 'refund done' but does not log the refund_id, making it hard to trace refunds in logs.",
+    "The logging message in payments.py includes 'amount', which is a money value. While not personal data, it should be consistent with the standard of saying the unit (EUR) if not obvious, though this is minor."
+   ],
+   "findings": [
+    {
+     "file": "orders/api.py",
+     "line": 54,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The log.info call logs 'refund done' but does not include the refund_id returned from payments.refund(). This makes it impossible to correlate the log entry with the specific gateway transaction.",
+     "suggested_fix": "Change log.info('refund done order=%s refund=%s', order_id, refund_id) to log.info('refunded order=%s amount=%s refund=%s', order_id, amount, refund_id)"
+    },
+    {
+     "file": "orders/api.py",
+     "line": 54,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The log message does not state the unit (EUR) for the amount, which is required by Standard #14 when the unit is not obvious.",
+     "suggested_fix": "Include the amount in the log message and ensure it is formatted or logged with context indicating EUR."
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 38,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The log message logs 'amount' but does not explicitly state the currency (EUR) in the text, which is required by Standard #14.",
+     "suggested_fix": "Change log.info('refunded order=%s amount=%s', order_id, amount) to log.info('refunded order=%s amount=%s currency=EUR', order_id, amount)"
+    }
+   ],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

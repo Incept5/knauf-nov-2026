@@ -1,0 +1,238 @@
+{
+ "01-typo-docs": {
+  "secs": 5.2,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This change updates documentation in the README and CODING-STANDARDS files to correct minor wording issues and improve clarity. It involves no code modifications, only textual edits to markdown files.",
+   "risk": "low",
+   "risk_reasons": [
+    "The change is limited to documentation (README and coding standards).",
+    "No functional code or business logic is modified.",
+    "The changes are purely stylistic/grammatical."
+   ],
+   "findings": [],
+   "recommendation": "approve"
+  },
+  "gate": "auto_merge_candidate",
+  "reasons": [
+   "no rule fired and the model agrees: safe to auto-merge once required CI checks pass"
+  ],
+  "err": ""
+ },
+ "02-delivery-date-feature": {
+  "secs": 5.6,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "Adds a new module for calculating estimated delivery dates based on working days, along with unit tests.",
+   "risk": "low",
+   "risk_reasons": [
+    "New code is isolated and does not modify existing logic.",
+    "No external dependencies or secrets introduced.",
+    "Logic is simple date arithmetic."
+   ],
+   "findings": [
+    {
+     "file": "orders/delivery.py",
+     "line": 10,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Rule 8 requires that boundaries be written down and tested. The function `add_working_days` accepts `days: int`, but the docstring only mentions 'not negative'. It does not explicitly state if there is an upper bound or how it handles large numbers, though more critically, Rule 12 (Time zones) suggests using timezone-aware datetimes. While `date` objects are naive, mixing them with potentially timezone-aware inputs elsewhere could cause issues. However, the most direct violation is Rule 8 regarding boundary documentation and testing for limits if any exist, or simply the lack of explicit handling for edge cases like very large integers which might be inefficient but not incorrect. A more specific finding is related to Rule 10: The function `add_working_days` uses a loop which could be slow for large inputs, but stays under 40 lines. The primary issue is actually Rule 8's requirement for testing limits if they exist. Here, the limit is effectively infinite, but the docstring should clarify behavior for `days=0` vs positive integers more explicitly as a boundary condition.",
+     "suggested_fix": "Clarify the docstring to explicitly state that `days=0` returns the start date (which is tested) and ensure the test suite covers the boundary of 0 days (which it does). Ensure the function signature or docstring clarifies if there are any performance constraints on large `days` values."
+    },
+    {
+     "file": "orders/delivery.py",
+     "line": 1,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "Rule 12 states to use timezone-aware datetimes and store UTC. While `date` objects do not have timezones, the module docstring mentions 'public holidays are ignored for now'. This is a business logic limitation that should be clearly documented as such to avoid future confusion when holidays are eventually added.",
+     "suggested_fix": "The current implementation is acceptable for a naive date calculation, but consider adding a note in the docstring about the lack of holiday support being a known limitation."
+    }
+   ],
+   "recommendation": "approve"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] the model reported 1 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "03-money-rounding": {
+  "secs": 7.3,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "Adds a bulk discount logic to the pricing module and includes basic tests. The implementation introduces several violations of the coding standards regarding data types and boundary conditions.",
+   "risk": "high",
+   "risk_reasons": [
+    "Violates standard #2 by using float for money calculations, risking precision errors.",
+    "Violates standard #8 by implementing 'over 100' instead of '100 or more', contradicting the description and likely business intent.",
+    "Violates standard #2 by returning a float from a function that should return Decimal."
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 19,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "Standard #2 requires money to be Decimal, never float. The function `bulk_unit_price` returns a float and converts the input unit_price to float on line 20 (`price = float(unit_price)`). This introduces floating-point precision errors in financial calculations.",
+     "suggested_fix": "Change return type to Decimal. Keep calculations in Decimal: `if quantity >= BULK_DISCOUNT_FROM: price = price * (Decimal('1') - BULK_DISCOUNT_RATE)`. Return `price`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 21,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "Standard #8 requires boundaries to be written down and tested. The description says '100 pieces or more', but the code uses `quantity > BULK_DISCOUNT_FROM` (strictly greater than). This excludes exactly 100 pieces from the discount, which is likely incorrect based on the description.",
+     "suggested_fix": ""
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 29,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard #2 requires money to be Decimal. The contract discount calculation `price * (1 - float(CONTRACT_DISCOUNT))` converts the constant to float and multiplies a float (from previous line) by it, resulting in a float before passing to `to_money`. This should use Decimal arithmetic.",
+     "suggested_fix": ""
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 30,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard #2 requires rounding with `ROUND_HALF_UP`. The code uses Python's built-in `round()` which performs banker's rounding (round half to even), not `ROUND_HALF_UP`.",
+     "suggested_fix": ""
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 13,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard #2 requires constants to be Decimal. `BULK_DISCOUNT_RATE = 0.10` is a float constant.",
+     "suggested_fix": ""
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 9,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard #8 requires tests to check the limit and values on either side. The test only checks 200 (above) and 5 (below). It misses the boundary case of exactly 100.",
+     "suggested_fix": ""
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 6 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "04-security-customer-search": {
+  "secs": 4.2,
+  "calls": 1,
+  "chunks": 0,
+  "problems": [],
+  "review": null,
+  "gate": "block",
+  "reasons": [
+   "[block] an added line looks like a hard-coded secret",
+   "[block] an added line looks like SQL built from strings",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model's answer could not be parsed, so there is no review to trust"
+  ],
+  "err": "local: HTTP 500: {\"error\":{\"message\":\"prediction aborted, token repeat limit reached\",\"type\":\"api_error\",\"param\":null,\"code\":null}}\n"
+ },
+ "05-rename-reports": {
+  "secs": 5.5,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This change renames abbreviated variables and functions in export.py to full words (e.g., cust -> customer, amt -> amount) to comply with naming standards. The diff confirms this is a mechanical renaming with no behavioral changes. | This change renames abbreviated variables and functions in reports.py to full words (e.g., cust -> customer, amt -> amount) to comply with naming standards. The diff confirms this is a pure refactoring with no behavioral changes.",
+   "risk": "low",
+   "risk_reasons": [
+    "The change is purely cosmetic (renaming identifiers).",
+    "No logic, validation, or data handling has been altered.",
+    "Standard compliance improvement.",
+    "The change is strictly mechanical renaming of identifiers.",
+    "No logic, validation, or business rules are altered.",
+    "The scope is limited to one file as described."
+   ],
+   "findings": [],
+   "recommendation": "approve",
+   "incomplete": false
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 6.7,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This change adds a `refund` function to the payments gateway and a `refund_order` handler in the API layer. It enables customer service to process refunds by calling the external payment provider.",
+   "risk": "medium",
+   "risk_reasons": [
+    "Missing input validation for the `amount` parameter in `refund_order` violates standard #3.",
+    "Logging the refund amount in `payments.py` may violate standard #6 regarding personal/sensitive data.",
+    "The `amount` argument lacks type hints, violating standard #10."
+   ],
+   "findings": [
+    {
+     "file": "orders/api.py",
+     "line": 47,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "Standard #3 requires validating input at the edge. The `refund_order` function accepts an `amount` parameter but does not validate that it is a positive number or that it does not exceed the order's gross amount. This could lead to invalid refunds or errors downstream.",
+     "suggested_fix": "Add validation to ensure `amount > 0` and `amount <= row[2]` (the order total) before calling the payment gateway."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 53,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard #10 requires public functions to have typed signatures. The `amount` parameter in `refund_order` is missing a type hint (should be `Decimal`).",
+     "suggested_fix": "Update the function signature to `def refund_order(conn, order_id: str, amount: Decimal) -> str:`."
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 37,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard #6 states that logging should not carry personal data. While an order ID is allowed, logging the raw `amount` (money) might be considered sensitive or unnecessary PII-adjacent data depending on strictness. More critically, if `amount` contains decimal places, it logs internal precision details which is often discouraged in audit logs.",
+     "suggested_fix": "Review if logging the amount is necessary for the refund ID lookup. If kept, ensure it is formatted consistently (e.g., string representation) and justified."
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 34,
+     "severity": "low",
+     "category": "standards",
+     "explanation": "Standard #10 requires typed signatures. The `amount` parameter in `payments.refund` is missing a type hint.",
+     "suggested_fix": "Update the function signature to `def refund(order_id: str, amount: Decimal) -> str:`."
+    }
+   ],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

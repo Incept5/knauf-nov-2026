@@ -1,0 +1,180 @@
+{
+ "03-money-rounding": {
+  "secs": 47.6,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "The change adds a 10% bulk discount for order lines with 100 or more pieces. It introduces a helper function that converts Decimal prices to floats and modifies the line total calculation to apply the discount.",
+   "risk": "high",
+   "risk_reasons": [
+    "Violates the standard that money must be Decimal, not float",
+    "Changes the boundary condition from '100 or more' to 'strictly greater than 100'",
+    "Replaces standard rounding logic with Python's built-in round function"
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 13,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The constant BULK_DISCOUNT_RATE is defined as a float (0.10). Standard 2 requires money and rates to be Decimal to avoid precision errors.",
+     "suggested_fix": "Change the definition to BULK_DISCOUNT_RATE = Decimal(\"0.10\")"
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 20,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function bulk_unit_price returns a float. Standard 2 explicitly states 'Money is Decimal, never float'.",
+     "suggested_fix": "Change the return type to Decimal and ensure the calculation uses Decimal arithmetic."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 22,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The function converts the input Decimal unit_price to a float. This violates the standard that money must be handled as Decimal.",
+     "suggested_fix": "Remove the float() conversion and keep the price as a Decimal."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 23,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The condition 'quantity > BULK_DISCOUNT_FROM' implements 'strictly greater than 100'. The description and standard 8 require the discount for '100 pieces or more' (inclusive).",
+     "suggested_fix": "Change the condition to 'quantity >= BULK_DISCOUNT_FROM'."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 31,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The code uses 'float(CONTRACT_DISCOUNT)' to convert a Decimal to a float. This violates the standard that money must be Decimal.",
+     "suggested_fix": "Remove the float() conversion and use Decimal arithmetic directly."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 32,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The code uses 'round(price * quantity, 2)' instead of the standard 'to_money' helper. This bypasses the required ROUND_HALF_UP rounding and uses Python's banker's rounding.",
+     "suggested_fix": "Replace 'round(price * quantity, 2)' with 'to_money(price * quantity)'."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 6 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "05-rename-reports": {
+  "secs": 80.3,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This change renames abbreviated variables and functions in orders/export.py to full words (e.g., inv to invoice, amt to amount) to comply with naming standards. The PR description claims it is a naming-only change with no behavior change. | This change renames abbreviated variables and functions in reports.py to full words (e.g., cust to customer, amt to amount) as part of a naming cleanup. However, it also introduces a behavioral change by removing the explicit ROUND_HALF_UP rounding argument from the format_amount function.",
+   "risk": "medium",
+   "risk_reasons": [
+    "The PR description claims no behavior change, but the diff modifies the string literals in the HEADER constant and the header line in export_customer_totals.",
+    "Changing the output format strings will break any external systems or tests that expect the old abbreviated headers.",
+    "Removal of explicit rounding mode in format_amount changes financial calculations",
+    "PR description claims 'no behaviour change' but the diff alters rounding logic"
+   ],
+   "findings": [
+    {
+     "file": "orders/export.py",
+     "line": 8,
+     "severity": "high",
+     "category": "regression",
+     "explanation": "The HEADER constant was changed from [\"inv_id\", \"cust_id\", ...] to [\"invoice_id\", \"customer_id\", ...]. This changes the output format of the export, which contradicts the PR description of 'naming only, no behaviour change' and will break downstream consumers expecting the old headers.",
+     "suggested_fix": "Revert the HEADER constant to its original values [\"inv_id\", \"cust_id\", \"inv_dt\", \"net_amt\", \"vat_amt\", \"gross_amt\"]. If the header names need to change, it must be a separate PR with explicit behavior change approval."
+    },
+    {
+     "file": "orders/export.py",
+     "line": 105,
+     "severity": "high",
+     "category": "regression",
+     "explanation": "The header line in export_customer_totals was changed from \"cust_id;inv_cnt;gross_tot\" to \"customer_id;invoice_count;gross_total\". This is a behavior change that contradicts the PR description and will break parsers expecting the old format.",
+     "suggested_fix": "Revert the header string to \"cust_id;inv_cnt;gross_tot\" to maintain the existing output format."
+    },
+    {
+     "file": "orders/reports.py",
+     "line": 14,
+     "severity": "high",
+     "category": "regression",
+     "explanation": "The function `format_amount` (formerly `fmt_amt`) no longer passes `rounding=ROUND_HALF_UP` to `Decimal.quantize`. The default rounding mode for `Decimal` is `ROUND_HALF_EVEN`, which will produce different results for values ending in 5 (e.g., 1.005 becomes 1.00 instead of 1.01). This violates Standard 2 (Money is Decimal, round to cents with ROUND_HALF_UP) and contradicts the PR description which claims 'no behaviour change'.",
+     "suggested_fix": "Restore the rounding argument: `return str(Decimal(str(amount)).quantize(CENT, rounding=ROUND_HALF_UP))`"
+    }
+   ],
+   "recommendation": "block",
+   "incomplete": false
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 26.1,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "Adds a refund capability by introducing a `refund` function in `payments.py` and a `refund_order` handler in `api.py`. The handler validates the order exists and calls the payment gateway to process the refund.",
+   "risk": "medium",
+   "risk_reasons": [
+    "Missing input validation for the refund amount at the API edge",
+    "No tests provided for the new payment logic",
+    "Potential for double-refunding or over-refunding if not handled in the database layer"
+   ],
+   "findings": [
+    {
+     "file": "orders/api.py",
+     "line": 48,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "Standard 3 requires validating input at the edge. The `amount` parameter is passed directly to the payment gateway without checking if it is a valid `Decimal`, if it is positive, or if it exceeds the order's gross total.",
+     "suggested_fix": "Add validation to ensure `amount` is a `Decimal` instance, is greater than zero, and does not exceed the order's gross amount."
+    },
+    {
+     "file": "orders/payments.py",
+     "line": 32,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "Standard 9 requires tests for changes to `payments`. The diff does not include any tests for the new `refund` function.",
+     "suggested_fix": "Add unit tests for `payments.refund` covering success, gateway errors, and edge cases."
+    },
+    {
+     "file": "orders/api.py",
+     "line": 48,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The handler does not check if the order has already been fully refunded or if the refund amount exceeds the original charge, which could lead to financial loss.",
+     "suggested_fix": "Check the order's refund status in the database and ensure the refund amount does not exceed the remaining balance."
+    }
+   ],
+   "recommendation": "needs_human_review"
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 3 medium/high finding(s)"
+  ],
+  "err": ""
+ }
+}

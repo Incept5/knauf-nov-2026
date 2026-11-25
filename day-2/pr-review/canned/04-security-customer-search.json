@@ -1,0 +1,28 @@
+{
+  "_label": "CANNED EXAMPLE written by the workshop team. Not real model output.",
+  "summary": "Adds a customer search for support (db.py, api.py) and switches confirmation mails to a new provider (notifications.py).",
+  "risk": "high",
+  "risk_reasons": [
+    "SQL built from user input",
+    "credential in source code"
+  ],
+  "findings": [
+    {
+      "file": "orders/db.py",
+      "line": 32,
+      "severity": "high",
+      "category": "security",
+      "explanation": "The query is built by concatenating name_fragment into the SQL string. This is SQL injection (standard 4).",
+      "suggested_fix": "Use a parameter: conn.execute('... LIKE ?', ('%' + name_fragment + '%',))."
+    },
+    {
+      "file": "orders/notifications.py",
+      "line": 7,
+      "severity": "high",
+      "category": "security",
+      "explanation": "An API key is written into the source file (standard 5).",
+      "suggested_fix": "Read it from the environment through config.py and rotate the key."
+    }
+  ],
+  "recommendation": "block"
+}

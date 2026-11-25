@@ -1,0 +1,11 @@
+{
+  "_label": "CANNED EXAMPLE written by the workshop team. Not real model output.",
+  "summary": "Renames abbreviated identifiers in reports.py and export.py (cust to customer, qty to quantity, amt to amount and so on). The change looks mechanical.",
+  "risk": "low",
+  "risk_reasons": [
+    "naming only",
+    "dict keys and output formats are unchanged"
+  ],
+  "findings": [],
+  "recommendation": "approve"
+}

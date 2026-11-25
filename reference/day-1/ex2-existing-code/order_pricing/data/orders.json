@@ -1,0 +1,6 @@
+[
+  {"id": "A-1001", "items": [{"sku": "PB-125", "qty": 40}, {"sku": "SC-500", "qty": 2}]},
+  {"id": "A-1002", "contract": true, "items": [{"sku": "INS-100", "qty": 80}, {"sku": "JT-25", "qty": 4}]},
+  {"id": "A-1003", "items": [{"sku": "PB-150", "qty": 50}]},
+  {"id": "A-1004", "items": [{"sku": "PB-125", "qty": 10}, {"sku": "XX-999", "qty": 1}]}
+]

@@ -1,0 +1,38 @@
+[
+ {
+  "probe": "naive-check",
+  "rep": 0,
+  "seconds": 5.75,
+  "raw": "{\n  \"consistent\": false,\n  \"reasons\": [\n    \"Order A-1003 requested 50 units of SKU PB-150, but the delivery note indicates only 46 units were delivered (shortage of 4).\",\n    \"The delivery note references Order A-1003, which is correct, but fails to account for the missing quantity.\",\n    \"The order list does not contain any items matching 'INS-100', 'JT-25', or 'XX-999' found in other orders, though this is expected as the note only references A-1003. However, the primary inconsistency is the quantity mismatch for the referenced order.\"\n  ]\n}"
+ },
+ {
+  "probe": "naive-check",
+  "rep": 1,
+  "seconds": 6.24,
+  "raw": "{\n  \"is_consistent\": false,\n  \"reasons\": [\n    \"Order A-1003 requested 50 units of SKU PB-150, but the delivery note states only 46 were delivered.\",\n    \"The delivery note references a short-delivery and back-order for Order A-1003, which is not reflected in the provided order list as incomplete.\",\n    \"The delivery note mentions 'Plasterboard' and 'fire-rated', while the order lists SKU 'PB-150'. While plausible, the quantity mismatch is the primary inconsistency. No other orders (A-1001, A-1002, A-1004) are mentioned in this specific delivery note, implying it only covers A-1003, where the quantity does not match.\"\n  ]\n}"
+ },
+ {
+  "probe": "naive-check",
+  "rep": 2,
+  "seconds": 6.84,
+  "raw": "{\n  \"consistent\": false,\n  \"reasons\": [\n    \"Order A-1003 specifies quantity 50, but the delivery note indicates 46 items delivered (shortage of 4).\",\n    \"Order A-1003 does not mention any damaged goods or back-orders, whereas the delivery note lists damage and a back-order expectation.\",\n    \"The delivery note references customer reference SN-77, which is not present in the corresponding order record.\"\n  ]\n}"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 0,
+  "seconds": 7.9,
+  "raw": "```json\n{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"Jointing compound (stored in buckets)\",\n  \"quantity\": \"Two buckets split; rest of stack tipped over\",\n  \"problem\": \"Stack tipped over when lift was called; compound reached stairwell creating a slip risk until cleaned.\",\n  \"who_must_act\": [\n    {\n      \"action\": \"Develop storage plan for all levels\",\n      \"owner\": \"Site Manager\"\n    },\n    {\n      \"action\": \"Conduct toolbox talk on stacking limits\",\n      \"owner\": \"H&S Officer\",\n      \"due_date\": \"2026-11-09\"\n    }\n  ]\n}\n```"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 1,
+  "seconds": 6.42,
+  "raw": "```json\n{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"jointing compound buckets\",\n  \"quantity\": \"stack (at least 2 split)\",\n  \"problem\": \"Stack tipped over when lift was called; compound spilled into stairwell creating a slip risk until cleaned at 11:20.\",\n  \"who_must_act\": [\n    {\n      \"action\": \"Create storage plan for all levels\",\n      \"owner\": \"Site Manager\"\n    },\n    {\n      \"action\": \"Conduct toolbox talk on stacking limits\",\n      \"owner\": \"H&S Officer\",\n      \"due_date\": \"9 November\"\n    }\n  ]\n}\n```"
+ },
+ {
+  "probe": "naive-extract",
+  "rep": 2,
+  "seconds": 6.92,
+  "raw": "```json\n{\n  \"date\": \"2026-11-02\",\n  \"site\": \"Wohnanlage Lindenhof, building B, level 3\",\n  \"material\": \"Jointing compound (stored in buckets on a pallet)\",\n  \"quantity\": \"Two buckets split (compound spilled)\",\n  \"problem\": \"A stack of jointing compound buckets tipped over when the lift was called; compound reached the stairwell creating a slip risk. Contributing factors included uneven ground, lack of barriers, and storage area not agreed upon in the morning briefing.\",\n  \"who_must_act\": [\n    {\n      \"role\": \"Site Manager\",\n      \"action\": \"Develop storage plan for all levels\"\n    },\n    {\n      \"role\": \"H&S Officer\",\n      \"action\": \"Conduct toolbox talk on stacking limits (due 9 November)\"\n    }\n  ]\n}\n```"
+ }
+]

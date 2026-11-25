@@ -1,0 +1,35 @@
+diff --git a/CODING-STANDARDS.md b/CODING-STANDARDS.md
+--- a/CODING-STANDARDS.md
++++ b/CODING-STANDARDS.md
+@@ -1,9 +1,9 @@
+ # Coding standards (order-service)
+ 
+-Reviewers (human or AI) check changes against these rules. Each rule has a number so a comment can cite it.
++Reviewers (human or AI) check changes against these rules. Each rule has a number, so a comment can cite it.
+ 
+ 1. **Naming.** `snake_case` for functions and variables, `PascalCase` for classes, `UPPER_CASE` for constants.
+-   Use full words in new code (`customer`, not `cust`). Old abbreviations in `reports.py` are being cleaned up.
++   Use full words in new code (`customer`, not `cust`). Old abbreviations in `reports.py` are still being cleaned up.
+ 2. **Money is `Decimal`, never `float`.** Build it from strings (`Decimal("19.99")`), round to cents with
+    `ROUND_HALF_UP` once per line total, and send it to other systems as a string.
+ 3. **Validate input at the edge.** Anything from outside (requests, files) is checked in `api.py`:
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,7 @@
+ # order-service (fictional)
+ 
+ A tiny order service for a fictional building-materials supplier. It prices orders, stores them in SQLite,
+-takes payment through a (fictional) gateway and sends confirmations. Standard library only.
++takes payment through a (fictional) payment gateway and sends confirmations. Standard library only.
+ 
+ | File | What it does |
+ |---|---|
+@@ -15,6 +15,6 @@
+ | `orders/reports.py` | Older reporting code (abbreviated names, not yet cleaned up) |
+ | `orders/export.py` | Older accounting export code (same abbreviations) |
+ 
+-Run the tests: `python3 -m unittest discover -s tests -t .`
++Run the tests (from this folder): `python3 -m unittest discover -s tests -t .`
+ 
+ Read `CODING-STANDARDS.md` before reviewing a change to this code.

@@ -1,0 +1,45 @@
+PR                           model risk  model says          gate decision         time
+-----------------------------------------------------------------------------------------
+01-typo-docs                 low         approve             auto_merge_candidate  6.1s
+02-delivery-date-feature     low         approve             auto_merge_candidate  11.9s
+03-money-rounding            high        block               block                 36.3s
+04-security-customer-search  high        block               block                 26.3s
+05-rename-reports            medium      block               block                 34.5s
+06-refund-endpoint           medium      needs_human_review  human_review          30.8s
+
+Where 'model says' and 'gate decision' differ, the rules overrode the AI. That is the design.
+
+01-typo-docs: auto_merge_candidate
+  - no rule fired and the model agrees: safe to auto-merge once required CI checks pass
+
+02-delivery-date-feature: auto_merge_candidate
+  - no rule fired and the model agrees: safe to auto-merge once required CI checks pass
+
+03-money-rounding: block
+  - [human_review] touches a payment/pricing/auth path: orders/pricing.py
+  - [block] the model recommends blocking
+  - [human_review] the model rates the risk 'high'
+  - [human_review] the model reported 4 medium/high finding(s)
+
+04-security-customer-search: block
+  - [block] an added line looks like a hard-coded secret
+  - [block] an added line looks like SQL built from strings
+  - [human_review] code changed but no test file changed
+  - [block] the model reported a security finding
+  - [block] the model recommends blocking
+  - [human_review] the model rates the risk 'high'
+  - [human_review] the model reported 4 medium/high finding(s)
+
+05-rename-reports: block
+  - [human_review] 482 changed lines is more than 150
+  - [human_review] code changed but no test file changed
+  - [block] the model recommends blocking
+  - [human_review] the model rates the risk 'medium'
+  - [human_review] the model reported 1 medium/high finding(s)
+
+06-refund-endpoint: human_review
+  - [human_review] touches a payment/pricing/auth path: orders/payments.py
+  - [human_review] code changed but no test file changed
+  - [human_review] the model recommends 'needs_human_review'
+  - [human_review] the model rates the risk 'medium'
+  - [human_review] the model reported 2 medium/high finding(s)

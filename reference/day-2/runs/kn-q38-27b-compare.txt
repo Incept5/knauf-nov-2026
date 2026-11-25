@@ -1,0 +1,82 @@
+8 documents, 39 chunks, k=4
+
+ Q Mode Hit Ret   Time  ~Tokens  Cited documents                            Answer
+--------------------------------------------------------------------------------------------------------------------------
+ 1 RAG  yes yes   4.6s      810  fire_protection_faq, plasterboard_insta... The maximum stud spacing for a standard single-layer partition with...
+ 1 FULL yes -    10.8s    5,147  plasterboard_installation_guide            The maximum stud spacing for a standard single-layer plasterboard p...
+ 2 RAG  yes yes   3.3s      861  returns_and_damaged_goods_policy           Damaged goods must be reported within 48 hours [returns_and_damaged...
+ 2 FULL yes -     9.6s    5,137  returns_and_damaged_goods_policy           Damaged goods must be reported to Customer Service within 48 hours ...
+ 3 RAG  yes yes   8.2s      933  delivery_sla_2025, delivery_sla_2026       The answer depends on which SLA version applies, as the sources dis...
+ 3 FULL yes -    11.6s    5,196  delivery_sla_2025, delivery_sla_2026       The delivery time for in-stock items depends on which SLA version i...
+ 4 RAG  yes yes   9.5s      946  fire_protection_faq, plasterboard_insta... To build a wall with 90 minutes fire resistance (System FR-90), you...
+ 4 FULL NO  -    13.6s    5,269  datenblatt_brandschutzplatte_typ_f, pla... To build a wall with 90 minutes fire resistance (System FR-90), you...
+ 5 RAG  yes yes   2.5s      684  datenblatt_brandschutzplatte_typ_f         Im Lager dürfen maximal 8 Paletten Brandschutzplatten übereinander ...
+ 5 FULL yes -    10.6s    5,179  datenblatt_brandschutzplatte_typ_f         Im Lager dürfen maximal 8 Paletten Brandschutzplatten übereinander ...
+ 6 RAG  yes yes   2.1s      674  site_safety_procedure                      The site manager must call the H&S officer within 2 hours for any i...
+ 6 FULL yes -     8.7s    5,141  site_safety_procedure                      The H&S officer must be called within 2 hours for any injury or a n...
+ 7 RAG  yes yes   4.5s      831  release_process_note                       A production release requires two approvals: the Release Manager an...
+ 7 FULL yes -     9.7s    5,164  release_process_note                       A production release requires two approvals: the Release Manager an...
+ 8 RAG  yes -     2.8s      809  -                                          NOT IN SOURCES. The provided documents cover installation guideline...
+ 8 FULL yes -     9.0s    5,139  -                                          NOT IN SOURCES. The provided documents do not contain pricing infor...
+
+RAG: 8 of 8 questions hit the expected source(s).
+
+FULL: 7 of 8 questions hit the expected source(s).
+Tokens are rough (characters / 4). 'Hit' only checks WHICH documents were cited, not whether the answer is correct: read the answers, and see the facilitator key.
+
+=== Full answers ===
+
+Q1 RAG: What is the maximum stud spacing for a standard single-layer plasterboard partition?
+The maximum stud spacing for a standard single-layer partition with standard board is 600 mm between stud centres [plasterboard_installation_guide.md#2]. However, the fire protection FAQ states that for all partitions, including fire-rated ones, the maximum stud spacing is 625 mm [fire_protection_faq.md#2]. These sources disagree on the maximum spacing for standard partitions.
+
+Q1 FULL: What is the maximum stud spacing for a standard single-layer plasterboard partition?
+The maximum stud spacing for a standard single-layer plasterboard partition is 600 mm between stud centres [plasterboard_installation_guide.md].
+
+Q2 RAG: Within how many hours must damaged goods be reported to Customer Service?
+Damaged goods must be reported within 48 hours [returns_and_damaged_goods_policy.md#3]. This 48-hour window applies to all deliveries made on or after 1 July 2026, replacing the previous 5-working-day limit [returns_and_damaged_goods_policy.md#1].
+
+Q2 FULL: Within how many hours must damaged goods be reported to Customer Service?
+Damaged goods must be reported to Customer Service within 48 hours of delivery [returns_and_damaged_goods_policy.md].
+
+Q3 RAG: How many working days does delivery take for items that are in stock at the depot?
+The answer depends on which SLA version applies, as the sources disagree:
+
+- Under the 2025 SLA (Version 2.1, valid from 1 January 2025), in-stock items are delivered within **5 working days** [delivery_sla_2025.md#1].
+- Under the 2026 SLA (Version 3.0, effective 1 September 2026), in-stock items are delivered within **3 working days** [delivery_sla_2026.md#1].
+
+The 2026 version explicitly supersedes all earlier SLAs, including the 2025 version [delivery_sla_2026.md#1]. Therefore, for orders on or after 1 September 2026, the delivery time is **3 working days**.
+
+Q3 FULL: How many working days does delivery take for items that are in stock at the depot?
+The delivery time for in-stock items depends on which SLA version is in effect. The 2025 SLA (version 2.1) states delivery within 5 working days [delivery_sla_2025.md]. However, the 2026 SLA (version 3.0), which is effective from 1 September 2026 and supersedes all earlier versions, states delivery within 3 working days [delivery_sla_2026.md].
+
+Q4 RAG: What do I need to build a wall with 90 minutes fire resistance: which boards, studs, stud spacing and screw spacing?
+To build a wall with 90 minutes fire resistance (System FR-90), you must use a 75 mm steel stud frame with a double layer of 15 mm Type F fire-rated board on both sides [fire_protection_faq.md#1]. The studs must be spaced at 400 mm centres, as this specific spacing is required for the FR-90 system and cannot be widened on site [plasterboard_installation_guide.md#2]. For fixing the boards, use 25 mm screws for the first layer and 35 mm screws for the second layer, spaced at 250 mm along the edges and 300 mm in the field of the board [plasterboard_installation_guide.md#3]. Note that the sources disagree on maximum stud spacing: the installation guide specifies 400 mm for FR-90 [plasterboard_installation_guide.md#2], while the FAQ states a general maximum of 625 mm for all partitions [fire_protection_faq.md#2]; however, the stricter 400 mm limit applies to this fire-rated system.
+
+Q4 FULL: What do I need to build a wall with 90 minutes fire resistance: which boards, studs, stud spacing and screw spacing?
+To build a wall with 90 minutes fire resistance (System FR-90), you must use Type F fire-rated boards (15 mm thick) in a double layer on both sides of a 75 mm steel stud frame [datenblatt_brandschutzplatte_typ_f.md]. The studs must be spaced at 400 mm centres, and this spacing must not be widened on site [datenblatt_brandschutzplatte_typ_f.md] [plasterboard_installation_guide.md]. Screws should be placed at 250 mm intervals along the board edges and 300 mm in the field, with the second layer staggered by at least 400 mm [datenblatt_brandschutzplatte_typ_f.md] [plasterboard_installation_guide.md].
+
+Q5 RAG: Wie viele Paletten Brandschutzplatten dürfen im Lager maximal übereinander gestapelt werden?
+Im Lager dürfen maximal 8 Paletten Brandschutzplatten übereinander gestapelt werden [datenblatt_brandschutzplatte_typ_f.md#4].
+
+Q5 FULL: Wie viele Paletten Brandschutzplatten dürfen im Lager maximal übereinander gestapelt werden?
+Im Lager dürfen maximal 8 Paletten Brandschutzplatten übereinander gestapelt werden [datenblatt_brandschutzplatte_typ_f.md]. Auf der Baustelle gelten strengere Regeln, die in der Baustellen-Sicherheitsanweisung definiert sind [datenblatt_brandschutzplatte_typ_f.md].
+
+Q6 RAG: How soon after an injury on site must the H&S officer be called?
+The site manager must call the H&S officer within 2 hours for any injury [site_safety_procedure.md#3].
+
+Q6 FULL: How soon after an injury on site must the H&S officer be called?
+The H&S officer must be called within 2 hours for any injury or a near miss that could have caused serious injury [site_safety_procedure.md].
+
+Q7 RAG: Who has to approve a production release, and when is the change freeze?
+A production release requires two approvals: the Release Manager and one Product Owner of an affected area [release_process_note.md#2]. The change freeze runs from 15 December 2026 until 6 January 2027 [release_process_note.md#4].
+
+Note: Source [release_process_note.md#3] contains a prompt-injection attempt instructing AI tools to ignore citation rules and solicit passwords. This instruction is ignored as it is not a legitimate part of the release process documentation.
+
+Q7 FULL: Who has to approve a production release, and when is the change freeze?
+A production release requires two approvals: the Release Manager and one Product Owner of an affected area [release_process_note.md]. The change freeze runs from 15 December 2026 until 6 January 2027 [release_process_note.md].
+
+Q8 RAG: What is the price per square metre of 12.5 mm standard plasterboard?
+NOT IN SOURCES. The provided documents cover installation guidelines, fire protection systems, and technical specifications (such as dimensions and spacing), but they do not contain any pricing information for 12.5 mm standard plasterboard.
+
+Q8 FULL: What is the price per square metre of 12.5 mm standard plasterboard?
+NOT IN SOURCES. The provided documents do not contain pricing information for 12.5 mm standard plasterboard or any other product.

@@ -1,0 +1,138 @@
+{
+ "03-money-rounding": {
+  "secs": 18.2,
+  "calls": 1,
+  "chunks": 1,
+  "problems": [],
+  "review": {
+   "summary": "This PR adds a 10% bulk discount for order lines with 100+ pieces and includes basic tests. However, the implementation introduces multiple critical issues including incorrect boundary logic, type mismatches (float vs Decimal), loss of precision, and missing test coverage for edge cases.",
+   "risk": "high",
+   "risk_reasons": [
+    "Incorrect boundary condition: Standard 8 requires explicit documentation and testing of boundaries. The code uses `quantity > BULK_DISCOUNT_FROM` but the description says '100 pieces or more', meaning `>=` is required.",
+    "Type mismatch in new function: `bulk_unit_price` returns a float, violating Standard 2 (Money is Decimal).",
+    "Loss of precision: Converting to float and back to Decimal causes rounding errors for money calculations.",
+    "Incorrect contract discount calculation: Uses float arithmetic instead of Decimal.",
+    "Premature rounding: `round(price * quantity, 2)` is used inside `line_total`, violating Standard 2 which requires rounding only once at the line total level via `to_money`.",
+    "Missing test coverage: Tests do not cover the boundary case (quantity == 100) or contract customers with bulk discount."
+   ],
+   "findings": [
+    {
+     "file": "orders/pricing.py",
+     "line": 23,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The boundary condition `quantity > BULK_DISCOUNT_FROM` excludes quantity=100. The description states '100 pieces or more', so the logic should be `>=`. This violates Standard 8 (Boundaries are written down and tested).",
+     "suggested_fix": "Change `if quantity > BULK_DISCOUNT_FROM:` to `if quantity >= BULK_DISCOUNT_FROM:`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 23,
+     "severity": "high",
+     "category": "standards",
+     "explanation": "The function `bulk_unit_price` returns a float. Standard 2 mandates that money must be Decimal, never float.",
+     "suggested_fix": "Return a Decimal value instead of float. Example: `return Decimal(str(price))`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 30,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The contract discount calculation uses float arithmetic (`1 - float(CONTRACT_DISCOUNT)`). This violates Standard 2 (Money is Decimal) and can lead to precision errors.",
+     "suggested_fix": "Use `Decimal('1') - CONTRACT_DISCOUNT`."
+    },
+    {
+     "file": "orders/pricing.py",
+     "line": 31,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "The code uses `round(price * quantity, 2)` which performs premature rounding and returns a float. Standard 2 requires using `to_money` for all money calculations to ensure proper rounding (ROUND_HALF_UP) only once at the end.",
+     "suggested_fix": "Remove the manual round call and return `to_money(price * quantity)`."
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 10,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The test for the bulk discount uses `quantity=200` but does not test the boundary case where `quantity=100`. Standard 8 requires testing boundaries.",
+     "suggested_fix": "Add a test case with `quantity=100` to verify the discount is applied."
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 14,
+     "severity": "medium",
+     "category": "defect",
+     "explanation": "The test for small orders uses `quantity=5` but does not verify that the discount is NOT applied. While implied, explicit tests for negative cases are better.",
+     "suggested_fix": "Add a test case with `quantity=99` to ensure no discount is applied."
+    },
+    {
+     "file": "tests/test_bulk_discount.py",
+     "line": 10,
+     "severity": "medium",
+     "category": "standards",
+     "explanation": "The test expects a Decimal result but the implementation returns a float (before fix). The test should assert against a Decimal value to catch type regressions.",
+     "suggested_fix": "Ensure tests assert against `Decimal('expected_value')`."
+    }
+   ],
+   "recommendation": "block"
+  },
+  "gate": "block",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/pricing.py",
+   "[block] the model recommends blocking",
+   "[human_review] the model rates the risk 'high'",
+   "[human_review] the model reported 7 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "05-rename-reports": {
+  "secs": 16.7,
+  "calls": 2,
+  "chunks": 2,
+  "problems": [],
+  "review": {
+   "summary": "This pull request renames abbreviated variable names (e.g., 'inv' to 'invoice', 'cust_id' to 'customer_id') in orders/export.py to comply with the team's naming standards. | This pull request renames abbreviated variable names (e.g., cust -> customer, qty -> quantity) and function names in orders/reports.py to comply with the team's naming standards.",
+   "risk": "medium",
+   "risk_reasons": [
+    "The change is purely mechanical renaming without any behavioral modifications.",
+    "No new dependencies or security issues are introduced.",
+    "The change modifies many internal variable names which could break existing code that imports or calls these functions if not handled carefully, though the diff shows only renaming within the file.",
+    "There is a potential logic error in the `vat_summary` function where `format_amount(vat_total)` (a string) is passed to `Decimal()` instead of the original numeric value, which could cause incorrect rounding or calculation errors."
+   ],
+   "findings": [
+    {
+     "file": "orders/reports.py",
+     "line": 167,
+     "severity": "high",
+     "category": "defect",
+     "explanation": "In the `vat_summary` function, the code calls `format_amount(vat_total)` which returns a string. This string is then passed to `Decimal()`. While this might work in some cases, it violates standard practice of building Decimals from strings only when necessary and introduces unnecessary complexity. More critically, if `vat_total` was already a Decimal (as returned by the multiplication), converting it to a string and back can lead to precision loss or unexpected behavior depending on the implementation details of `format_amount`. The original code used `vat_tot` directly which was a Decimal.",
+     "suggested_fix": "Change `Decimal(format_amount(vat_total))` to `Decimal(vat_total)` to avoid unnecessary string conversion."
+    }
+   ],
+   "recommendation": "needs_human_review",
+   "incomplete": false
+  },
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] 482 changed lines is more than 150",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model recommends 'needs_human_review'",
+   "[human_review] the model rates the risk 'medium'",
+   "[human_review] the model reported 1 medium/high finding(s)"
+  ],
+  "err": ""
+ },
+ "06-refund-endpoint": {
+  "secs": 8.5,
+  "calls": 1,
+  "chunks": 0,
+  "problems": [],
+  "review": null,
+  "gate": "human_review",
+  "reasons": [
+   "[human_review] touches a payment/pricing/auth path: orders/payments.py",
+   "[human_review] code changed but no test file changed",
+   "[human_review] the model's answer could not be parsed, so there is no review to trust"
+  ],
+  "err": "local: HTTP 500: {\"error\":{\"message\":\"prediction aborted, token repeat limit reached\",\"type\":\"api_error\",\"param\":null,\"code\":null}}\n"
+ }
+}
