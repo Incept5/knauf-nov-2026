@@ -11,6 +11,8 @@ This repository holds everything you run during the workshop: starter code, data
 |---|---|
 | `day-1/` | Thursday: connection tests, the four hands-on exercises and the spec-driven exercise |
 | `day-2/` | Friday: PR review, knowledge (RAG, extraction, tools) and vision packs |
+| `reference/` | Worked solutions: try each exercise yourself first |
+| `demos/` | Code behind the Day 1 presenter demos |
 
 Start with [`day-1/README.md`](day-1/README.md).
 
@@ -27,7 +29,7 @@ Three model backends are used. Their URLs and model names are defined in one pla
 | `local` | A model on your own laptop: Ollama (`http://localhost:11434/v1`, default), LM Studio or `mlx_lm.server` | none |
 
 ```bash
-git clone git@github.com:Incept5/knauf-nov-2026.git
+git clone https://github.com/Incept5/knauf-nov-2026.git
 cd knauf-nov-2026/day-1/connectivity
 export INCEPT5_API_KEY=...        # from your handout
 python3 test_connection.py        # standard library only, nothing to install; also finds local servers

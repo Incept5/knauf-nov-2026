@@ -1,0 +1,1 @@
+Add Munich weather per delivery day (Open-Meteo). If it fails, say so and carry on.

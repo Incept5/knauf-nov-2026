@@ -1,0 +1,4 @@
+Build me a web app where a site manager logs deliveries of plasterboard and sees which are late.
+Put everything in one index.html file (HTML, CSS and JavaScript, no build step, no server) and keep the data in the browser's localStorage.
+Each delivery has a supplier, site, quantity, delivery date and a "delivered" button. Late means before today and not delivered.
+Start with a few example deliveries dated relative to today, including one due today. Use Knauf plants as suppliers and Munich building sites.

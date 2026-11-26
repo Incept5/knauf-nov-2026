@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gipsplatten-Lieferprotokoll</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #1c2330;
+    --muted: #6b7484;
+    --line: #e3e6ec;
+    --accent: #2456c4;
+    --late: #c62f2f;
+    --late-bg: #fdecec;
+    --today: #9a6700;
+    --today-bg: #fff4d6;
+    --ok: #1e7a44;
+    --ok-bg: #e6f4ec;
+    --plan: #3b5a8f;
+    --plan-bg: #e9eff9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p { margin: 0 0 20px; color: var(--muted); font-size: .95rem; }
+
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 16px; min-width: 120px;
+  }
+  .stat .num { font-size: 1.5rem; font-weight: 700; }
+  .stat .lbl { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .stat.late .num { color: var(--late); }
+  .stat.today .num { color: var(--today); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 20px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 1.05rem; }
+
+  form.add { display: grid; grid-template-columns: 1.4fr 1.4fr .7fr .9fr auto; gap: 10px; align-items: end; }
+  form.add .field { display: flex; flex-direction: column; gap: 4px; }
+  form.add label { font-size: .78rem; color: var(--muted); }
+  form.add input, form.add select {
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    font: inherit; background: #fff; color: var(--ink); width: 100%;
+  }
+  form.add button {
+    padding: 9px 18px; border: 0; border-radius: 8px; background: var(--accent);
+    color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  form.add button:hover { filter: brightness(1.08); }
+  @media (max-width: 760px) {
+    form.add { grid-template-columns: 1fr 1fr; }
+    form.add button { grid-column: 1 / -1; }
+  }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters button {
+    padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px;
+    background: #fff; color: var(--muted); font: inherit; font-size: .85rem; cursor: pointer;
+  }
+  .filters button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--line); font-size: .92rem; }
+  th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; white-space: nowrap; }
+  .rel { display: block; font-size: .78rem; color: var(--muted); }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: .78rem; font-weight: 600; white-space: nowrap;
+  }
+  .badge.late { color: var(--late); background: var(--late-bg); }
+  .badge.today { color: var(--today); background: var(--today-bg); }
+  .badge.scheduled { color: var(--plan); background: var(--plan-bg); }
+  .badge.delivered { color: var(--ok); background: var(--ok-bg); }
+
+  .btn {
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; font: inherit; font-size: .84rem; cursor: pointer; white-space: nowrap;
+  }
+  .btn.primary { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ghost:hover { background: var(--bg); }
+  .btn.danger { color: var(--late); border-color: transparent; background: transparent; font-weight: 700; }
+  .btn.danger:hover { background: var(--late-bg); }
+  .actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  footer { margin-top: 18px; color: var(--muted); font-size: .8rem; }
+
+  /* ---------- Muenchner Wetter (Open-Meteo) ---------- */
+  .wx { font-size: .85rem; white-space: nowrap; }
+  .wx .ico { margin-right: 3px; }
+  .wx .tmp { font-weight: 600; }
+  .wx .prc { color: var(--muted); }
+  .wx.none { color: var(--muted); font-weight: 400; }
+  .wx-note {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--late-bg); color: var(--late);
+    border: 1px solid #f3c9c9; border-radius: 10px;
+    padding: 8px 14px; margin-bottom: 16px; font-size: .85rem;
+  }
+  .wx-note button {
+    margin-left: auto; padding: 4px 12px; border: 1px solid #f3c9c9; border-radius: 7px;
+    background: #fff; color: var(--late); font: inherit; font-size: .8rem; cursor: pointer;
+  }
+  .cal-day .day-wx {
+    text-align: center; font-size: .7rem; color: var(--muted);
+    margin: -4px 0 6px; white-space: nowrap;
+  }
+
+  /* ---------- Wochenkalender ---------- */
+  .cal-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .cal-head #cal-range { color: var(--muted); font-size: .9rem; }
+  .cal-nav { margin-left: auto; display: flex; gap: 6px; }
+  .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: .78rem; color: var(--muted); margin-bottom: 10px; }
+  .cal-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .cal-day {
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px 6px;
+    min-height: 110px; background: #fbfcfe; transition: border-color .12s, background .12s;
+  }
+  .cal-day.today { border-color: var(--today); background: var(--today-bg); }
+  .cal-day.drag-over { border-color: var(--accent); border-style: dashed; background: var(--plan-bg); }
+  .cal-day .day-head {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted); text-align: center; margin-bottom: 6px;
+  }
+  .cal-day .day-head .n { display: block; font-size: .95rem; color: var(--ink); text-transform: none; letter-spacing: 0; }
+  .cal-day.today .day-head { color: var(--today); font-weight: 700; }
+  .cal-day.today .day-head .n { color: var(--today); }
+  .chip {
+    display: block; border: 1px solid transparent; border-left-width: 4px; border-radius: 7px;
+    padding: 5px 8px; margin-bottom: 6px; font-size: .78rem; line-height: 1.25;
+    cursor: grab; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    -webkit-touch-callout: none;
+  }
+  .chip:active { cursor: grabbing; }
+  .chip.dragging { opacity: .45; }
+  .chip.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .chip .qty { font-weight: 700; }
+  .chip .site { color: var(--ink); }
+  .chip.late { color: var(--late); background: var(--late-bg); border-left-color: var(--late); }
+  .chip.today { color: var(--today); background: var(--today-bg); border-left-color: var(--today); }
+  .chip.scheduled { color: var(--plan); background: var(--plan-bg); border-left-color: var(--plan); }
+  .chip.delivered { color: var(--ok); background: var(--ok-bg); border-left-color: var(--ok); }
+  .cal-hint { margin: 10px 0 0; font-size: .78rem; color: var(--muted); }
+  .cal-grid.moving .cal-day { cursor: pointer; }
+  @media (max-width: 760px) {
+    .cal-grid { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 6px; }
+    .cal-day { flex: 0 0 132px; }
+    .chip { min-height: 34px; }
+    .btn, .filters button { min-height: 38px; }
+  }
+
+  /* ---------- Tabelle als Karten auf dem Handy ---------- */
+  @media (max-width: 640px) {
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tr {
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 10px;
+    }
+    tr:last-child { margin-bottom: 0; }
+    td {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+      border: 0; padding: 3px 0;
+    }
+    td::before {
+      content: attr(data-label);
+      color: var(--muted); font-size: .72rem; text-transform: uppercase;
+      letter-spacing: .05em; flex: 0 0 40%;
+    }
+    td:last-child { padding-top: 8px; }
+    td .rel { display: inline; margin-left: 6px; }
+    td.num { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Gipsplatten-Lieferprotokoll</h1>
+    <p>Knauf-Gipsplatten-Lieferungen zu Münchner Baustellen im Blick behalten. Eine Lieferung gilt als <strong>überfällig</strong>, wenn ihr Datum vor heute liegt und sie nicht als geliefert markiert wurde.</p>
+  </header>
+
+  <div class="wx-note" id="wx-note" hidden>
+    <span id="wx-note-text">Wetter nicht verfügbar.</span>
+    <button type="button" id="wx-retry">Erneut versuchen</button>
+  </div>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="card">
+    <div class="cal-head">
+      <h2>Wochenkalender</h2>
+      <span id="cal-range"></span>
+      <div class="cal-nav">
+        <button class="btn ghost" id="cal-prev" aria-label="Vorherige Woche">&lsaquo;</button>
+        <button class="btn ghost" id="cal-today">Diese Woche</button>
+        <button class="btn ghost" id="cal-next" aria-label="Nächste Woche">&rsaquo;</button>
+      </div>
+    </div>
+    <div class="cal-legend">
+      <span><span class="dot" style="background:var(--late)"></span>Überfällig</span>
+      <span><span class="dot" style="background:var(--today)"></span>Heute fällig</span>
+      <span><span class="dot" style="background:var(--plan)"></span>Geplant</span>
+      <span><span class="dot" style="background:var(--ok)"></span>Geliefert</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <p class="cal-hint">Ziehe eine Lieferung auf einen anderen Tag, um sie zu verschieben – oder tippe sie an und danach den Ziel-Tag (auf dem Handy). Der Kalender zeigt immer alle Lieferungen, nach Status eingefärbt.</p>
+  </section>
+
+  <section class="card">
+    <h2>Lieferung hinzufügen</h2>
+    <form class="add" id="addForm" autocomplete="off">
+      <div class="field">
+        <label for="supplier">Lieferant (Knauf-Werk)</label>
+        <input id="supplier" list="suppliers" required placeholder="Knauf Iphofen">
+        <datalist id="suppliers">
+          <option value="Knauf Iphofen"></option>
+          <option value="Knauf Oosterhout"></option>
+          <option value="Knauf Písek"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="site">Baustelle</label>
+        <input id="site" list="sites" required placeholder="Olympiapark Sanierung">
+        <datalist id="sites">
+          <option value="Olympiapark Sanierung"></option>
+          <option value="Marienhof Quartier"></option>
+          <option value="Schwabing Parkside"></option>
+          <option value="Laim Business Campus"></option>
+          <option value="Pasing Arcaden"></option>
+          <option value="PRIVAT Parkstadt Schwabing"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="quantity">Menge (Platten)</label>
+        <input id="quantity" type="number" min="1" step="1" required inputmode="numeric" placeholder="120">
+      </div>
+      <div class="field">
+        <label for="date">Lieferdatum</label>
+        <input id="date" type="date" required>
+      </div>
+      <button type="submit">Hinzufügen</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="filters" id="filters">
+      <button data-filter="all" class="active">Alle</button>
+      <button data-filter="late">Überfällig</button>
+      <button data-filter="today">Heute fällig</button>
+      <button data-filter="scheduled">Geplant</button>
+      <button data-filter="delivered">Geliefert</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Lieferant</th>
+          <th>Baustelle</th>
+          <th class="num">Platten</th>
+          <th>Lieferdatum</th>
+          <th>Wetter München</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>Keine Lieferungen in dieser Ansicht.</div>
+  </section>
+
+  <footer>Die Daten werden lokal im Browser gespeichert (localStorage) – kein Server beteiligt. Das Wetter für München (48,14° N, 11,58° O) stammt von der Open-Meteo-Tagesvorhersage-API.</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var LS_KEY = 'knau…s.v1';
+  var LOCALE = 'de-DE';
+
+  // ---------- date helpers (all dates are local "YYYY-MM-DD" strings) ----------
+  function todayStr() {
+    var d = new Date();
+    return isoOf(d);
+  }
+  function isoOf(d) {
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  function shiftDays(n) {
+    var d = new Date();
+    d.setDate(d.getDate() + n);
+    return isoOf(d);
+  }
+  // Whole-day difference between an ISO date and today (negative = past).
+  function daysFromToday(iso) {
+    var a = new Date(iso + 'T00:00:00');
+    var t = new Date(todayStr() + 'T00:00:00');
+    return Math.round((a - t) / 86400000);
+  }
+  function fmtDate(iso) {
+    return new Date(iso + 'T00:00:00').toLocaleDateString(LOCALE, {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+    });
+  }
+
+  // ---------- data ----------
+  function seed() {
+    return [
+      { id: id(), supplier: 'Knauf Iphofen',    site: 'Olympiapark Sanierung',   quantity: 240, date: shiftDays(-6), delivered: false },
+      { id: id(), supplier: 'Knauf Oosterhout', site: 'Laim Business Campus',    quantity: 180, date: shiftDays(-3), delivered: true  },
+      { id: id(), supplier: 'Knauf Písek',      site: 'Schwabing Parkside',      quantity: 96,  date: shiftDays(-2), delivered: false },
+      { id: id(), supplier: 'Knauf Iphofen',    site: 'Marienhof Quartier',      quantity: 320, date: shiftDays(0),  delivered: false },
+      { id: id(), supplier: 'Knauf Oosterhout', site: 'Pasing Arcaden',          quantity: 150, date: shiftDays(4),  delivered: false }
+    ];
+  }
+  function id() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* corrupted data -> reseed */ }
+    var data = seed();
+    save(data);
+    return data;
+  }
+  function save(data) {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }
+
+  var deliveries = load();
+  var filter = 'all';
+
+  // ---------- status ----------
+  // Ueberfaellig = date strictly before today AND not delivered.
+  function statusOf(d) {
+    if (d.delivered) return 'delivered';
+    var today = todayStr();
+    if (d.date < today) return 'late';
+    if (d.date === today) return 'today';
+    return 'scheduled';
+  }
+  function relLabel(d) {
+    var n = daysFromToday(d.date);
+    if (n === 0) return 'Heute';
+    if (n < 0) return d.delivered ? 'vor ' + Math.abs(n) + ' Tagen' : Math.abs(n) + ' Tage überfällig';
+    return 'in ' + n + ' Tag' + (n === 1 ? '' : 'en');
+  }
+  var BADGE_TEXT = { late: 'Überfällig', today: 'Heute fällig', scheduled: 'Geplant', delivered: 'Geliefert' };
+
+  // ---------- Muenchner Wetter (Open-Meteo) ----------
+  // Munich city centre. Open-Meteo's forecast API covers roughly the last 92
+  // days and the next 16, so dates outside that window get no data.
+  var WX_LAT = 48.1351, WX_LON = 11.5820;
+  var WX_PAST_DAYS = 92, WX_FUTURE_DAYS = 16;
+  var wxCache = {};        // "YYYY-MM-DD" -> { code, max, min, precip } | null (no data)
+  var wxPending = {};      // "YYYY-MM-DD" -> true while a request is in flight
+  var wxError = null;      // last failure message, or null
+
+  var WX_CODES = {
+    0: ['☀️', 'Klar'], 1: ['🌤️', 'Überwiegend klar'], 2: ['⛅', 'Teilweise bewölkt'], 3: ['☁️', 'Bedeckt'],
+    45: ['🌫️', 'Nebel'], 48: ['🌫️', 'Reifnebel'],
+    51: ['🌦️', 'Leichter Nieselregen'], 53: ['🌦️', 'Nieselregen'], 55: ['🌧️', 'Starker Nieselregen'],
+    56: ['🌧️', 'Gefrierender Nieselregen'], 57: ['🌧️', 'Gefrierender Nieselregen'],
+    61: ['🌧️', 'Leichter Regen'], 63: ['🌧️', 'Regen'], 65: ['🌧️', 'Starker Regen'],
+    66: ['🌧️', 'Gefrierender Regen'], 67: ['🌧️', 'Gefrierender Regen'],
+    71: ['🌨️', 'Leichter Schneefall'], 73: ['🌨️', 'Schneefall'], 75: ['❄️', 'Starker Schneefall'], 77: ['❄️', 'Schneegriesel'],
+    80: ['🌦️', 'Leichte Schauer'], 81: ['🌧️', 'Schauer'], 82: ['🌧️', 'Starke Schauer'],
+    85: ['🌨️', 'Schneeschauer'], 86: ['❄️', 'Starke Schneeschauer'],
+    95: ['⛈️', 'Gewitter'], 96: ['⛈️', 'Gewitter'], 99: ['⛈️', 'Gewitter']
+  };
+
+  function wxInfo(iso) {
+    var w = wxCache[iso];
+    if (!w) return null;
+    var c = WX_CODES[w.code] || ['❔', 'Unbekannt'];
+    return { icon: c[0], label: c[1], max: w.max, min: w.min, precip: w.precip };
+  }
+  function fmtTemp(v) {
+    return (v === null || v === undefined) ? '–' : Math.round(v) + '°';
+  }
+  function fmtPrecip(v) {
+    return (v === null || v === undefined) ? '' : ' · ' + (Math.round(v * 10) / 10) + ' mm';
+  }
+  // Cell for the delivery table.
+  function wxCellHtml(iso) {
+    if (wxError) return '<span class="wx none" title="Wetter nicht verfügbar">—</span>';
+    if (wxPending[iso]) return '<span class="wx none">lädt…</span>';
+    var info = wxInfo(iso);
+    if (!info) return '<span class="wx none" title="Keine Vorhersage für dieses Datum">–</span>';
+    var tip = info.label + ' · Hoch ' + fmtTemp(info.max) + ' · Tief ' + fmtTemp(info.min) +
+      (info.precip ? ' · ' + info.precip + ' mm Niederschlag' : '') + ' · Open-Meteo';
+    return '<span class="wx" title="' + esc(tip) + '">' +
+      '<span class="ico">' + info.icon + '</span>' +
+      '<span class="tmp">' + fmtTemp(info.max) + '/' + fmtTemp(info.min) + '</span>' +
+      '<span class="prc">' + esc(fmtPrecip(info.precip)) + '</span></span>';
+  }
+  // Short line for a calendar day column.
+  function wxCalHtml(iso) {
+    if (wxError) return '';
+    var info = wxInfo(iso);
+    if (!info) return '';
+    return '<div class="day-wx" title="' + esc(info.label) + '">' +
+      info.icon + ' ' + fmtTemp(info.max) + '/' + fmtTemp(info.min) + '</div>';
+  }
+
+  function isoOffset(days) {
+    var d = new Date();
+    d.setDate(d.getDate() + days);
+    return isoOf(d);
+  }
+
+  // ISO dates of the 7 days in the week `weeks` from the current week.
+  function weekDates(weeks) {
+    var monday = startOfWeekISO(weeks);
+    var out = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(monday + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      out.push(isoOf(d));
+    }
+    return out;
+  }
+
+  // Fetches daily weather for every delivery date we don't already have
+  // (plus the days shown in the calendar). Failures are recorded and shown,
+  // never thrown: the log still renders.
+  function refreshWeather() {
+    if (wxError) { renderWxNote(); return; }   // no auto-retry loop; use the Retry button
+    var missing = [];
+    function want(iso) {
+      if (wxCache[iso] === undefined && !wxPending[iso] && missing.indexOf(iso) < 0) missing.push(iso);
+    }
+    deliveries.forEach(function (d) { want(d.date); });
+    weekDates(weekOffset).forEach(want);
+    if (!missing.length) { renderWxNote(); return; }
+
+    var oldest = isoOffset(-WX_PAST_DAYS), newest = isoOffset(WX_FUTURE_DAYS);
+    var wanted = [];
+    missing.forEach(function (iso) {
+      if (iso < oldest || iso > newest) {
+        wxCache[iso] = null;      // outside the forecast window: no data, no request
+      } else {
+        wanted.push(iso);
+      }
+    });
+    if (!wanted.length) { render(); return; }
+
+    wanted.sort();
+    wanted.forEach(function (iso) { wxPending[iso] = true; });
+    renderWxNote();
+
+    var url = 'https://api.open-meteo.com/v1/forecast' +
+      '?latitude=' + WX_LAT + '&longitude=' + WX_LON +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum' +
+      '&timezone=Europe%2FBerlin&start_date=' + wanted[0] + '&end_date=' + wanted[wanted.length - 1];
+
+    fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (json) {
+      if (!json || !json.daily || !json.daily.time) throw new Error('unexpected response');
+      var byDate = {};
+      json.daily.time.forEach(function (iso, i) {
+        byDate[iso] = {
+          code: json.daily.weather_code[i],
+          max: json.daily.temperature_2m_max[i],
+          min: json.daily.temperature_2m_min[i],
+          precip: json.daily.precipitation_sum[i]
+        };
+      });
+      wanted.forEach(function (iso) {
+        wxCache[iso] = byDate[iso] || null;
+        delete wxPending[iso];
+      });
+      wxError = null;
+      render();
+    }).catch(function (err) {
+      wanted.forEach(function (iso) { delete wxPending[iso]; });
+      wxError = (err && err.message) ? err.message : 'Anfrage fehlgeschlagen';
+      render();
+    });
+  }
+
+  var wxNoteEl = document.getElementById('wx-note');
+  var wxNoteTextEl = document.getElementById('wx-note-text');
+  function renderWxNote() {
+    if (!wxNoteEl) return;
+    wxNoteEl.hidden = !wxError;
+    if (wxError) {
+      wxNoteTextEl.textContent = 'Münchner Wetter nicht verfügbar von Open-Meteo (' + wxError +
+        '). Die Lieferungen unten sind davon nicht betroffen.';
+    }
+  }
+  document.getElementById('wx-retry').addEventListener('click', function () {
+    wxError = null;
+    renderWxNote();
+    refreshWeather();
+  });
+
+  // ---------- rendering ----------
+  var rowsEl = document.getElementById('rows');
+  var emptyEl = document.getElementById('empty');
+  var statsEl = document.getElementById('stats');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function render() {
+    renderCalendar();
+    var today = todayStr();
+    var counts = { late: 0, today: 0, scheduled: 0, delivered: 0 };
+    deliveries.forEach(function (d) { counts[statusOf(d)]++; });
+
+    statsEl.innerHTML =
+      stat(counts.late, 'Überfällig', 'late') +
+      stat(counts.today, 'Heute fällig', 'today') +
+      stat(counts.scheduled, 'Geplant') +
+      stat(counts.delivered, 'Geliefert');
+
+    var visible = deliveries
+      .filter(function (d) { return filter === 'all' || statusOf(d) === filter; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
+    rowsEl.innerHTML = visible.map(function (d) {
+      var st = statusOf(d);
+      var action = d.delivered
+        ? '<button class="btn ghost" data-act="undo" data-id="' + d.id + '">Rückgängig</button>'
+        : '<button class="btn primary" data-act="deliver" data-id="' + d.id + '">Als geliefert markieren</button>';
+      return '<tr>' +
+        '<td data-label="Lieferant">' + esc(d.supplier) + '</td>' +
+        '<td data-label="Baustelle">' + esc(d.site) + '</td>' +
+        '<td class="num" data-label="Platten">' + Number(d.quantity).toLocaleString(LOCALE) + '</td>' +
+        '<td data-label="Lieferdatum">' + fmtDate(d.date) + '<span class="rel">' + relLabel(d) + '</span></td>' +
+        '<td data-label="Wetter München">' + wxCellHtml(d.date) + '</td>' +
+        '<td data-label="Status"><span class="badge ' + st + '">' + BADGE_TEXT[st] + '</span></td>' +
+        '<td><div class="actions">' + action +
+          '<button class="btn danger" data-act="delete" data-id="' + d.id + '" title="Lieferung löschen" aria-label="Lieferung löschen">&times;</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+
+    emptyEl.hidden = visible.length > 0;
+    refreshWeather();
+  }
+  function stat(num, label, cls) {
+    return '<div class="stat ' + (cls || '') + '"><div class="num">' + num + '</div><div class="lbl">' + label + '</div></div>';
+  }
+
+  // ---------- Wochenkalender ----------
+  var calGridEl = document.getElementById('cal-grid');
+  var calRangeEl = document.getElementById('cal-range');
+  var weekOffset = 0; // 0 = current week, -1 = previous, +1 = next, …
+  var moveId = null;  // id of the delivery selected for tap-to-move (touch devices)
+  var DAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  var STATUS_ORDER = { late: 0, today: 1, scheduled: 2, delivered: 3 };
+
+  // ISO date of the Monday of the week `weeks` from the current week.
+  function startOfWeekISO(weeks) {
+    var d = new Date();
+    var dow = (d.getDay() + 6) % 7; // Mon = 0 … Sun = 6
+    d.setDate(d.getDate() - dow + weeks * 7);
+    return isoOf(d);
+  }
+
+  function renderCalendar() {
+    var days = weekDates(weekOffset);
+
+    var first = new Date(days[0] + 'T00:00:00');
+    var last = new Date(days[6] + 'T00:00:00');
+    calRangeEl.textContent =
+      first.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' }) + ' – ' +
+      last.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+    var today = todayStr();
+    calGridEl.innerHTML = days.map(function (iso, i) {
+      var items = deliveries
+        .filter(function (x) { return x.date === iso; })
+        .sort(function (a, b) {
+          return STATUS_ORDER[statusOf(a)] - STATUS_ORDER[statusOf(b)] || b.quantity - a.quantity;
+        });
+      var chips = items.map(function (x) {
+        var st = statusOf(x);
+        var tip = x.supplier + ' → ' + x.site + ' · ' + Number(x.quantity).toLocaleString(LOCALE) + ' Platten · ' + BADGE_TEXT[st];
+        return '<div class="chip ' + st + (x.id === moveId ? ' selected' : '') + '" draggable="true" data-id="' + x.id + '" title="' + esc(tip) + '">' +
+          '<span class="qty">' + Number(x.quantity).toLocaleString(LOCALE) + '&times;</span> ' +
+          '<span class="site">' + esc(x.site) + '</span></div>';
+      }).join('');
+      return '<div class="cal-day' + (iso === today ? ' today' : '') + '" data-date="' + iso + '">' +
+        '<div class="day-head">' + DAY_NAMES[i] + '<span class="n">' + new Date(iso + 'T00:00:00').getDate() + '</span></div>' +
+        wxCalHtml(iso) +
+        chips +
+      '</div>';
+    }).join('');
+    calGridEl.classList.toggle('moving', !!moveId);
+  }
+
+  document.getElementById('cal-prev').addEventListener('click', function () { weekOffset--; render(); });
+  document.getElementById('cal-next').addEventListener('click', function () { weekOffset++; render(); });
+  document.getElementById('cal-today').addEventListener('click', function () { weekOffset = 0; render(); });
+
+  // Drag & drop: dropping a chip on a day column reschedules the delivery to that day.
+  calGridEl.addEventListener('dragstart', function (ev) {
+    var chip = ev.target.closest('.chip');
+    if (!chip) return;
+    ev.dataTransfer.setData('text/plain', chip.dataset.id);
+    ev.dataTransfer.effectAllowed = 'move';
+    chip.classList.add('dragging');
+  });
+  calGridEl.addEventListener('dragend', function () {
+    calGridEl.querySelectorAll('.dragging, .drag-over').forEach(function (el) {
+      el.classList.remove('dragging', 'drag-over');
+    });
+  });
+  calGridEl.addEventListener('dragover', function (ev) {
+    var col = ev.target.closest('.cal-day');
+    if (!col) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    col.classList.add('drag-over');
+  });
+  calGridEl.addEventListener('dragleave', function (ev) {
+    var col = ev.target.closest('.cal-day');
+    if (col && (!ev.relatedTarget || !col.contains(ev.relatedTarget))) col.classList.remove('drag-over');
+  });
+  calGridEl.addEventListener('drop', function (ev) {
+    var col = ev.target.closest('.cal-day');
+    if (!col) return;
+    ev.preventDefault();
+    col.classList.remove('drag-over');
+    moveId = null;
+    var d = deliveries.find(function (x) { return x.id === ev.dataTransfer.getData('text/plain'); });
+    if (!d || d.date === col.dataset.date) return;
+    d.date = col.dataset.date;
+    save(deliveries);
+    render();
+  });
+
+  // Tippen zum Verschieben (Handy ohne Drag & Drop): Lieferung antippen, dann den Ziel-Tag antippen.
+  calGridEl.addEventListener('click', function (ev) {
+    var chip = ev.target.closest('.chip');
+    if (chip) {
+      moveId = (moveId === chip.dataset.id) ? null : chip.dataset.id;
+      renderCalendar();
+      // The re-render detaches the clicked chip; without this, the event
+      // would bubble to the document cancel-handler, whose closest() check
+      // fails on the detached target and would immediately cancel the move.
+      ev.stopPropagation();
+      return;
+    }
+    var col = ev.target.closest('.cal-day');
+    if (col && moveId) {
+      var d = deliveries.find(function (x) { return x.id === moveId; });
+      moveId = null;
+      if (d && d.date !== col.dataset.date) {
+        d.date = col.dataset.date;
+        save(deliveries);
+      }
+      render();
+    }
+  });
+  // Tapping anywhere outside the calendar cancels a pending move.
+  document.addEventListener('click', function (ev) {
+    if (moveId && !ev.target.closest('#cal-grid')) {
+      moveId = null;
+      renderCalendar();
+    }
+  });
+
+  // ---------- events ----------
+  document.getElementById('addForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var supplier = document.getElementById('supplier').value.trim();
+    var site = document.getElementById('site').value.trim();
+    var quantity = parseInt(document.getElementById('quantity').value, 10);
+    var date = document.getElementById('date').value;
+    if (!supplier || !site || !(quantity > 0) || !date) return;
+
+    deliveries.push({ id: id(), supplier: supplier, site: site, quantity: quantity, date: date, delivered: false });
+    save(deliveries);
+    this.reset();
+    document.getElementById('date').value = todayStr();
+    render();
+  });
+
+  document.getElementById('filters').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-filter]');
+    if (!btn) return;
+    filter = btn.dataset.filter;
+    this.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    render();
+  });
+
+  rowsEl.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-act]');
+    if (!btn) return;
+    var d = deliveries.find(function (x) { return x.id === btn.dataset.id; });
+    if (!d) return;
+    var act = btn.dataset.act;
+    if (act === 'deliver') { d.delivered = true; }
+    else if (act === 'undo') { d.delivered = false; }
+    else if (act === 'delete') {
+      if (!confirm('Diese Lieferung löschen (' + d.supplier + ' → ' + d.site + ')?')) return;
+      deliveries = deliveries.filter(function (x) { return x.id !== d.id; });
+    }
+    save(deliveries);
+    render();
+  });
+
+  // default the date field to today, then draw
+  document.getElementById('date').value = todayStr();
+  render();
+})();
+</script>
+</body>
+</html>

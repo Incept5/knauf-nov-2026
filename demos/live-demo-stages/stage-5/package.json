@@ -1,0 +1,16 @@
+{
+  "name": "s5",
+  "version": "1.0.0",
+  "description": "Tests for the Gipsplatten-Lieferprotokoll (index.html)",
+  "main": "index.html",
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "jsdom": "^31.0.1"
+  }
+}

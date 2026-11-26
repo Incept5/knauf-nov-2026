@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plasterboard Delivery Log</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #1c2330;
+    --muted: #6b7484;
+    --line: #e3e6ec;
+    --accent: #2456c4;
+    --late: #c62f2f;
+    --late-bg: #fdecec;
+    --today: #9a6700;
+    --today-bg: #fff4d6;
+    --ok: #1e7a44;
+    --ok-bg: #e6f4ec;
+    --plan: #3b5a8f;
+    --plan-bg: #e9eff9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p { margin: 0 0 20px; color: var(--muted); font-size: .95rem; }
+
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 16px; min-width: 120px;
+  }
+  .stat .num { font-size: 1.5rem; font-weight: 700; }
+  .stat .lbl { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .stat.late .num { color: var(--late); }
+  .stat.today .num { color: var(--today); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 20px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 1.05rem; }
+
+  form.add { display: grid; grid-template-columns: 1.4fr 1.4fr .7fr .9fr auto; gap: 10px; align-items: end; }
+  form.add .field { display: flex; flex-direction: column; gap: 4px; }
+  form.add label { font-size: .78rem; color: var(--muted); }
+  form.add input, form.add select {
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    font: inherit; background: #fff; color: var(--ink); width: 100%;
+  }
+  form.add button {
+    padding: 9px 18px; border: 0; border-radius: 8px; background: var(--accent);
+    color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  form.add button:hover { filter: brightness(1.08); }
+  @media (max-width: 760px) { form.add { grid-template-columns: 1fr 1fr; } }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters button {
+    padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px;
+    background: #fff; color: var(--muted); font: inherit; font-size: .85rem; cursor: pointer;
+  }
+  .filters button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--line); font-size: .92rem; }
+  th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; white-space: nowrap; }
+  .rel { display: block; font-size: .78rem; color: var(--muted); }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: .78rem; font-weight: 600; white-space: nowrap;
+  }
+  .badge.late { color: var(--late); background: var(--late-bg); }
+  .badge.today { color: var(--today); background: var(--today-bg); }
+  .badge.scheduled { color: var(--plan); background: var(--plan-bg); }
+  .badge.delivered { color: var(--ok); background: var(--ok-bg); }
+
+  .btn {
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; font: inherit; font-size: .84rem; cursor: pointer; white-space: nowrap;
+  }
+  .btn.primary { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ghost:hover { background: var(--bg); }
+  .btn.danger { color: var(--late); border-color: transparent; background: transparent; font-weight: 700; }
+  .btn.danger:hover { background: var(--late-bg); }
+  .actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  footer { margin-top: 18px; color: var(--muted); font-size: .8rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Plasterboard Delivery Log</h1>
+    <p>Track Knauf plasterboard deliveries to Munich sites. A delivery counts as <strong>late</strong> when its date is before today and it has not been marked delivered.</p>
+  </header>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="card">
+    <h2>Add delivery</h2>
+    <form class="add" id="addForm" autocomplete="off">
+      <div class="field">
+        <label for="supplier">Supplier (Knauf plant)</label>
+        <input id="supplier" list="suppliers" required placeholder="Knauf Iphofen">
+        <datalist id="suppliers">
+          <option value="Knauf Iphofen"></option>
+          <option value="Knauf Oosterhout"></option>
+          <option value="Knauf Písek"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="site">Site</label>
+        <input id="site" list="sites" required placeholder="Olympiapark Sanierung">
+        <datalist id="sites">
+          <option value="Olympiapark Sanierung"></option>
+          <option value="Marienhof Quartier"></option>
+          <option value="Schwabing Parkside"></option>
+          <option value="Laim Business Campus"></option>
+          <option value="Pasing Arcaden"></option>
+          <option value="PRIVAT Parkstadt Schwabing"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="quantity">Quantity (sheets)</label>
+        <input id="quantity" type="number" min="1" step="1" required placeholder="120">
+      </div>
+      <div class="field">
+        <label for="date">Delivery date</label>
+        <input id="date" type="date" required>
+      </div>
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="filters" id="filters">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="late">Late</button>
+      <button data-filter="today">Due today</button>
+      <button data-filter="scheduled">Scheduled</button>
+      <button data-filter="delivered">Delivered</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Supplier</th>
+          <th>Site</th>
+          <th class="num">Sheets</th>
+          <th>Delivery date</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No deliveries in this view.</div>
+  </section>
+
+  <footer>Data is stored locally in your browser (localStorage) — no server involved.</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var LS_KEY = 'knau…s.v1';
+
+  // ---------- date helpers (all dates are local "YYYY-MM-DD" strings) ----------
+  function todayStr() {
+    var d = new Date();
+    return isoOf(d);
+  }
+  function isoOf(d) {
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  function shiftDays(n) {
+    var d = new Date();
+    d.setDate(d.getDate() + n);
+    return isoOf(d);
+  }
+  // Whole-day difference between an ISO date and today (negative = past).
+  function daysFromToday(iso) {
+    var a = new Date(iso + 'T00:00:00');
+    var t = new Date(todayStr() + 'T00:00:00');
+    return Math.round((a - t) / 86400000);
+  }
+  function fmtDate(iso) {
+    return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+    });
+  }
+
+  // ---------- data ----------
+  function seed() {
+    return [
+      { id: id(), supplier: 'Knauf Iphofen',    site: 'Olympiapark Sanierung',   quantity: 240, date: shiftDays(-6), delivered: false },
+      { id: id(), supplier: 'Knauf Oosterhout', site: 'Laim Business Campus',    quantity: 180, date: shiftDays(-3), delivered: true  },
+      { id: id(), supplier: 'Knauf Písek',      site: 'Schwabing Parkside',      quantity: 96,  date: shiftDays(-2), delivered: false },
+      { id: id(), supplier: 'Knauf Iphofen',    site: 'Marienhof Quartier',      quantity: 320, date: shiftDays(0),  delivered: false },
+      { id: id(), supplier: 'Knauf Oosterhout', site: 'Pasing Arcaden',          quantity: 150, date: shiftDays(4),  delivered: false }
+    ];
+  }
+  function id() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* corrupted data -> reseed */ }
+    var data = seed();
+    save(data);
+    return data;
+  }
+  function save(data) {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }
+
+  var deliveries = load();
+  var filter = 'all';
+
+  // ---------- status ----------
+  // Late = date strictly before today AND not delivered.
+  function statusOf(d) {
+    if (d.delivered) return 'delivered';
+    var today = todayStr();
+    if (d.date < today) return 'late';
+    if (d.date === today) return 'today';
+    return 'scheduled';
+  }
+  function relLabel(d) {
+    var n = daysFromToday(d.date);
+    if (n === 0) return 'Today';
+    if (n < 0) return d.delivered ? Math.abs(n) + ' days ago' : Math.abs(n) + ' days overdue';
+    return 'in ' + n + ' day' + (n === 1 ? '' : 's');
+  }
+  var BADGE_TEXT = { late: 'Late', today: 'Due today', scheduled: 'Scheduled', delivered: 'Delivered' };
+
+  // ---------- rendering ----------
+  var rowsEl = document.getElementById('rows');
+  var emptyEl = document.getElementById('empty');
+  var statsEl = document.getElementById('stats');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function render() {
+    var today = todayStr();
+    var counts = { late: 0, today: 0, scheduled: 0, delivered: 0 };
+    deliveries.forEach(function (d) { counts[statusOf(d)]++; });
+
+    statsEl.innerHTML =
+      stat(counts.late, 'Late', 'late') +
+      stat(counts.today, 'Due today', 'today') +
+      stat(counts.scheduled, 'Scheduled') +
+      stat(counts.delivered, 'Delivered');
+
+    var visible = deliveries
+      .filter(function (d) { return filter === 'all' || statusOf(d) === filter; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
+    rowsEl.innerHTML = visible.map(function (d) {
+      var st = statusOf(d);
+      var action = d.delivered
+        ? '<button class="btn ghost" data-act="undo" data-id="' + d.id + '">Undo</button>'
+        : '<button class="btn primary" data-act="deliver" data-id="' + d.id + '">Mark delivered</button>';
+      return '<tr>' +
+        '<td>' + esc(d.supplier) + '</td>' +
+        '<td>' + esc(d.site) + '</td>' +
+        '<td class="num">' + Number(d.quantity).toLocaleString() + '</td>' +
+        '<td>' + fmtDate(d.date) + '<span class="rel">' + relLabel(d) + '</span></td>' +
+        '<td><span class="badge ' + st + '">' + BADGE_TEXT[st] + '</span></td>' +
+        '<td><div class="actions">' + action +
+          '<button class="btn danger" data-act="delete" data-id="' + d.id + '" title="Delete delivery" aria-label="Delete delivery">&times;</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+
+    emptyEl.hidden = visible.length > 0;
+  }
+  function stat(num, label, cls) {
+    return '<div class="stat ' + (cls || '') + '"><div class="num">' + num + '</div><div class="lbl">' + label + '</div></div>';
+  }
+
+  // ---------- events ----------
+  document.getElementById('addForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var supplier = document.getElementById('supplier').value.trim();
+    var site = document.getElementById('site').value.trim();
+    var quantity = parseInt(document.getElementById('quantity').value, 10);
+    var date = document.getElementById('date').value;
+    if (!supplier || !site || !(quantity > 0) || !date) return;
+
+    deliveries.push({ id: id(), supplier: supplier, site: site, quantity: quantity, date: date, delivered: false });
+    save(deliveries);
+    this.reset();
+    document.getElementById('date').value = todayStr();
+    render();
+  });
+
+  document.getElementById('filters').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-filter]');
+    if (!btn) return;
+    filter = btn.dataset.filter;
+    this.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    render();
+  });
+
+  rowsEl.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-act]');
+    if (!btn) return;
+    var d = deliveries.find(function (x) { return x.id === btn.dataset.id; });
+    if (!d) return;
+    var act = btn.dataset.act;
+    if (act === 'deliver') { d.delivered = true; }
+    else if (act === 'undo') { d.delivered = false; }
+    else if (act === 'delete') {
+      if (!confirm('Delete this delivery (' + d.supplier + ' → ' + d.site + ')?')) return;
+      deliveries = deliveries.filter(function (x) { return x.id !== d.id; });
+    }
+    save(deliveries);
+    render();
+  });
+
+  // default the date field to today, then draw
+  document.getElementById('date').value = todayStr();
+  render();
+})();
+</script>
+</body>
+</html>
