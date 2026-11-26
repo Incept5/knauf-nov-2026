@@ -3,7 +3,7 @@
 Munich, Thursday 26 and Friday 27 November 2026. Incept5.
 
 This repository holds everything you run during the workshop: starter code, data, exercises and connection tests.
-**The slides are not in this repository.**
+Slides: [Day 1 (PDF)](slides/Knauf-AI-Workshop-Day-1.pdf).
 
 ## Layout
 
@@ -13,6 +13,7 @@ This repository holds everything you run during the workshop: starter code, data
 | `day-2/` | Friday: PR review, knowledge (RAG, extraction, tools) and vision packs |
 | `reference/` | Worked solutions: try each exercise yourself first |
 | `demos/` | Code behind the Day 1 presenter demos |
+| `slides/` | The slides, as PDF |
 
 Start with [`day-1/README.md`](day-1/README.md).
 

@@ -6,6 +6,7 @@ __pycache__/
 *.key
 *.pptx
 *.pdf
+!slides/*.pdf
 
 # Munich economic report: licence unclear (city copyright notice only). Never commit or redistribute.
 day-2/data/pages/
