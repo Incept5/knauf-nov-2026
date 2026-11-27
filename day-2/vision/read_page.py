@@ -6,7 +6,7 @@
   python3 read_page.py 12 --question "Which city has the highest purchasing power, and which the lowest?"
   python3 read_page.py path/to/any-page.png --question "What does this chart show?"
 
-Pages 12, 15 and 16 of the Munich economic report go in ../data/pages/ (muenchen-p12.png ...); they are not in git, see README.md.
+Pages 12, 15 and 16 of the Munich economic report go in ../data/pages/ (muenchen-p12.png ...); see ../data/SOURCES.md.
 The model gets the page as an IMAGE, so it reads the chart itself instead of a text layer that can garble digits.
 
 Backends (see ../common/llm.py): `cluster` is Incept5's Spark cluster (OpenAI chat-completions format), `astra` is
@@ -45,7 +45,7 @@ def main():
     a = ap.parse_args()
     path = a.page if os.path.exists(a.page) else os.path.join(HERE, "..", "data", "pages", f"muenchen-p{a.page}.png")
     if not os.path.exists(path):
-        sys.exit(f"No image at {path}. The page images are not in git: get them from the facilitator and put them in day-2/data/pages/ (see README.md), or pass a PNG path.")
+        sys.exit(f"No image at {path}. Run git pull to get the page images, or pass a PNG path.")
     question = a.question or DEFAULTS.get(a.page, "Describe this page: what does each chart show, and what are the key numbers?")
     backend = a.backend or default_backend()
     with open(path, "rb") as f:
