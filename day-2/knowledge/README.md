@@ -1,7 +1,7 @@
 # Day 2: Knowledge systems and tool calling
 
 Hands-on code for "Multimodal AI & Knowledge Systems" and "Advanced Context & AI Integration". Python 3, **standard library
-only**: nothing to install. All documents in `docs/` are invented (one is German); some contradict each other **on purpose**.
+only**: nothing to install. All documents in `docs/` and `extract_docs/` are invented (one in `docs/` is German); some contradict each other **on purpose**.
 
 ## Setup
 
@@ -24,7 +24,7 @@ LM Studio with thinking models: they may return nothing). No key and no local mo
 | `python3 full_context.py "question"` | the opposite: all documents in the prompt (slower, more tokens, sees everything) |
 | `python3 compare_retrieval.py` | the 8 questions in `questions.json` through both, with a hit/miss table (16 model calls: 30 s to 2 min on a fast Mac) |
 | `python3 compare_retrieval.py --offline-demo` | same table, no network: saved embeddings, **answers are canned** |
-| `python3 extract_json.py` | structured extraction + validation + one retry (`--schema` prints the schema) |
+| `python3 extract_json.py` | structured extraction + validation + one retry on the documents in `extract_docs/` (`--schema` prints the schema) |
 | `python3 tool_demo.py` | tool calling: model asks, our code runs a function, result goes back |
 | `python3 tool_demo.py --offline-demo` | the same flow with a scripted fake model (`--wire responses` for the other format) |
 | `python3 -m unittest test_offline -v` | self-tests, no network |

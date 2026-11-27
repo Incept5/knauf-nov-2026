@@ -1,6 +1,6 @@
 """Structured extraction: turn a free-text document into JSON, then CHECK the JSON with plain Python.
 
-    python3 extract_json.py                          # both Day 1 sample documents
+    python3 extract_json.py                          # the two sample documents in extract_docs/
     python3 extract_json.py path/to/file.txt [more files] [--backend cluster|astra|local]
     python3 extract_json.py --schema                 # print the schema and exit
 
@@ -17,7 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "common"))
 from llm import chat, BACKENDS  # noqa: E402
 
-DEFAULT_FILES = [os.path.join(HERE, "..", "..", "day-1", "ex3-add-ai", "docs", n)
+DEFAULT_FILES = [os.path.join(HERE, "extract_docs", n)
                  for n in ("delivery_note.txt", "site_incident_report.txt")]
 
 # The schema: field -> what it must look like. "null_ok" means the value may be null when the document does not say.
@@ -107,7 +107,7 @@ def extract(document, backend=None, max_tokens=1500):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("files", nargs="*", help="text files to read (default: the two Day 1 documents)")
+    ap.add_argument("files", nargs="*", help="text files to read (default: the delivery note and the incident report in extract_docs/)")
     ap.add_argument("--backend", choices=list(BACKENDS), default=None, help="cluster, astra or local (default: LLM_BACKEND or cluster)")
     ap.add_argument("--schema", action="store_true", help="print the schema and exit")
     a = ap.parse_args()
