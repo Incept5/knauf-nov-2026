@@ -1,5 +1,7 @@
 # Day 2 (Friday): knowledge, tools and pull-request review
 
+**Slides:** [Day 2 (PDF)](Knauf-AI-Workshop-Day-2.pdf)
+
 | Folder | What |
 |---|---|
 | `pr-review/` | AI-assisted pull-request review: six pull requests, a reviewer and a rule-based merge gate |

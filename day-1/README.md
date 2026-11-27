@@ -1,5 +1,7 @@
 # Day 1 exercises (starter material)
 
+**Slides:** [Day 1 (PDF)](Knauf-AI-Workshop-Day-1.pdf)
+
 Everything here works offline except the model calls. **Never put an API key in a file in this folder.**
 Knauf's network (Zscaler) blocks almost every `*.ai` site, so **no exercise uses Together.ai or any other hosted
 service**. Three backends are used:

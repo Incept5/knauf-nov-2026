@@ -6,7 +6,8 @@ __pycache__/
 *.key
 *.pptx
 *.pdf
-!slides/*.pdf
+!day-1/Knauf-AI-Workshop-Day-1.pdf
+!day-2/Knauf-AI-Workshop-Day-2.pdf
 
 # Munich economic report: licence unclear (city copyright notice only). Never commit or redistribute.
 day-2/data/pages/
