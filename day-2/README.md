@@ -3,7 +3,9 @@
 | Folder | What |
 |---|---|
 | `pr-review/` | AI-assisted pull-request review: six pull requests, a reviewer and a rule-based merge gate |
-| `knowledge/` | Retrieval (RAG with embeddings), full context, structured extraction and tool calling |
+| `knowledge/` | Retrieval (RAG with embeddings), full context, structured extraction (including GDPR/DSGVO articles as JSON) and tool calling |
+| `examples/` | The short scripts shown on the slides: extraction, JSON output, RAG over *Alice in Wonderland* |
+| `measurements/` | How the numbers on some slides were produced (presenter, Apple Silicon) |
 | `vision/` | Ask a vision model about a rendered page of a German economic report |
 | `common/llm.py` | The shared helper: URLs and models are in the CONFIG block at the top |
 

@@ -12,7 +12,7 @@ Slides: [Day 1 (PDF)](slides/Knauf-AI-Workshop-Day-1.pdf).
 | `day-1/` | Thursday: connection tests, the four hands-on exercises and the spec-driven exercise |
 | `day-2/` | Friday: PR review, knowledge (RAG, extraction, tools) and vision packs |
 | `reference/` | Worked solutions: try each exercise yourself first |
-| `demos/` | Code behind the Day 1 presenter demos |
+| `demos/` | Code behind the presenter demos on both days |
 | `slides/` | The slides, as PDF |
 
 Start with [`day-1/README.md`](day-1/README.md).

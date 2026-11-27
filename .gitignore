@@ -13,3 +13,8 @@ day-2/data/pages/
 day-2/data/*.pdf
 
 RESULTS.md
+
+# built or written by the examples
+chroma_db/
+dsgvo_articles.json
+gdpr_articles.json
