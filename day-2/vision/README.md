@@ -31,5 +31,6 @@ with `astra`; ask for the underlying data of a chart as a table; ask something o
 - **A confident answer can be wrong**, including from larger models: compare every number with the picture.
 
 **Tested live (25 Nov):** the cluster reads these pages with `qwen3.6-35b` and `deepseek-v4.1-flash`. `qwen3.8-27b` and
-`inkling-2-mini` do not take images on the cluster yet. Astra has not been tried.
+`inkling-2-mini` do not take images on the cluster yet. **26 Nov:** `qwen3.8-flash-next` refused images in six tries out of
+six ("no vision tower"), so use the default or DeepSeek. Local `qwen3.5:9b` on Ollama also read pages 12 and 16. Astra has not been tried.
 **The pages are the city's copyright** (no licence is stated): they are for use in this workshop and are not meant to be redistributed.

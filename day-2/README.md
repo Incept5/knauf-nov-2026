@@ -3,7 +3,7 @@
 | Folder | What |
 |---|---|
 | `pr-review/` | AI-assisted pull-request review: six pull requests, a reviewer and a rule-based merge gate |
-| `knowledge/` | Retrieval (BM25 RAG), full context, structured extraction and tool calling |
+| `knowledge/` | Retrieval (RAG with embeddings), full context, structured extraction and tool calling |
 | `vision/` | Ask a vision model about a rendered page of a German economic report |
 | `common/llm.py` | The shared helper: URLs and models are in the CONFIG block at the top |
 

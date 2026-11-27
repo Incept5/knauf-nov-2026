@@ -1,7 +1,7 @@
 """Run the 8 questions in questions.json through RAG and through full-context, and print one comparison table.
 
     python3 compare_retrieval.py [--backend cluster|astra|local] [--k 4] [--harden] [--only 1,3] [--full]
-    python3 compare_retrieval.py --offline-demo      # no network: retrieval is real, model answers are CANNED
+    python3 compare_retrieval.py --offline-demo      # no network: saved embeddings, model answers are CANNED
 
 Columns: Hit = did the answer cite every expected document (for the unanswerable question: did it say NOT IN SOURCES);
 Ret = (RAG only) was at least one chunk of each expected document retrieved (file level, not fact level). Hit=no with Ret=yes means the model
@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 
-from rag_lib import (DEFAULT_DOCS, HERE, NOT_FOUND, build_chunks, cited_files, estimate_tokens, full_context_prompt,
+from rag_lib import (load_saved_vectors, DEFAULT_DOCS, HERE, NOT_FOUND, build_chunks, cited_files, estimate_tokens, full_context_prompt,
                      read_docs, run_full, run_rag, system_prompt)
 from llm import BACKENDS   # rag_lib puts ../common on the path
 
@@ -53,8 +53,9 @@ def main():
     canned = {}
     if a.offline_demo:
         canned = {m: json.load(open(os.path.join(HERE, "canned", m + ".json"), encoding="utf-8")) for m in ("rag", "full")}
-        print("*** OFFLINE DEMO: retrieval and token counts are real, but every ANSWER and TIME below is CANNED "
-              "(written in advance to illustrate typical behaviour). Run without --offline-demo to use a real model. ***\n")
+        load_saved_vectors()      # real embeddings, saved earlier, so retrieval runs without a network
+        print("*** OFFLINE DEMO: retrieval uses saved embeddings; every ANSWER and TIME below is CANNED (RAG answers recorded "
+              "earlier from a real model, full-context answers written by hand). Run without --offline-demo to use a model live. ***\n")
     print(f"{len(docs)} documents, {len(chunks)} chunks, k={a.k}\n")
 
     rows, details = [], []
@@ -63,7 +64,7 @@ def main():
             try:
                 if mode == "RAG ":
                     fn = canned_fn(canned["rag"], q["id"]) if a.offline_demo else None
-                    r = run_rag(q["question"], chunks, a.k, "bm25", a.backend, a.harden, fn)
+                    r = run_rag(q["question"], chunks, a.k, a.backend, a.harden, fn)
                     retrieved = {c["file"] for _, c in r["hits"]}
                     ret = "yes" if all(f in retrieved for f in q["expected_sources"]) else "NO"
                     if not q["answerable"]:

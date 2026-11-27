@@ -2,7 +2,7 @@
 
     python3 full_context.py "What is the maximum stud spacing?" [--docs docs] [--backend cluster|astra|local] [--budget 120000]
 
-Compare the answer, the time and the token estimate with bm25_rag.py.
+Compare the answer, the time and the token estimate with rag.py.
 """
 import argparse
 

@@ -19,36 +19,46 @@ LM Studio with thinking models: they may return nothing). No key and no local mo
 
 | Script | Demonstrates |
 |---|---|
-| `python3 bm25_rag.py "question" --show-chunks` | RAG: chunk, index, retrieve top-k, answer **with sources**, say "not in sources" |
+| `python3 rag.py "question" --show-chunks` | RAG: chunk, embed, retrieve top-k, answer **with sources**, say "not in sources" |
+| `python3 rag.py "question" --search-only` | just the retrieval: which chunks are closest to the question |
 | `python3 full_context.py "question"` | the opposite: all documents in the prompt (slower, more tokens, sees everything) |
 | `python3 compare_retrieval.py` | the 8 questions in `questions.json` through both, with a hit/miss table (16 model calls: 30 s to 2 min on a fast Mac) |
-| `python3 compare_retrieval.py --offline-demo` | same table, no network: retrieval is real, **answers are canned** |
+| `python3 compare_retrieval.py --offline-demo` | same table, no network: saved embeddings, **answers are canned** |
 | `python3 extract_json.py` | structured extraction + validation + one retry (`--schema` prints the schema) |
 | `python3 tool_demo.py` | tool calling: model asks, our code runs a function, result goes back |
 | `python3 tool_demo.py --offline-demo` | the same flow with a scripted fake model (`--wire responses` for the other format) |
 | `python3 -m unittest test_offline -v` | self-tests, no network |
 
-Options worth trying: `--k 2` / `--k 8` (`bm25_rag.py`, `compare_retrieval.py`), `--backend astra`, `--harden` (anti-injection rule),
+Options worth trying: `--k 2` / `--k 8` (`rag.py`, `compare_retrieval.py`), `--backend astra`, `--harden` (anti-injection rule),
 `--docs your_file.txt`, `compare_retrieval.py --only 1,3 --full-answers` (read the answers, not only the table).
 Your own `.txt` or `.md` files work in `--docs` (PDFs do not: extract the text first).
 
-## Why BM25 and not embeddings?
+## Embeddings: searching by meaning
 
-Real systems usually use **embeddings**: a model turns text into vectors so that "plasterboard" and "drywall", or an English
-question and a German paragraph, land close together. That needs an embedding model, and on locked-down laptops we cannot
-download one. **BM25** is a classic keyword ranking that runs anywhere in pure Python and shows the same pipeline:
-**chunk, index, retrieve, answer with sources**. Its limits are the point of some exercises: it only matches words that
-are actually there (no synonyms, no translation), it knows nothing about meaning, dates or which document is newer, and a
-fact split over several chunks may not be retrieved together. Production systems often combine BM25 and embeddings.
-`rag_lib.py` also has a plain TF-IDF scorer (`--method tfidf`) and a fuzzy fallback when nothing matches.
+An embedding model turns each text into a vector, so texts that mean similar things end up close together. A German question
+finds an English paragraph, and "drywall" finds "plasterboard". The Incept5 cluster serves `qwen3-embedding-4b` at
+`/v1/embeddings` with the same key as chat, so there is nothing to download.
+
+```bash
+python3 rag.py "Wie groß darf der Ständerabstand bei einer Trennwand höchstens sein?"   # German question
+python3 rag.py "My drywall arrived broken" --search-only                               # see what is retrieved
+```
+
+Things to know:
+- **Questions and documents are embedded differently:** Qwen wants an instruction prefix on the question only (see `rag_lib.py`).
+- **Send chunks in batches,** not one request each: the server limits requests per second.
+- Retrieval always returns something, however irrelevant. The model still has to say "NOT IN SOURCES".
+- On your own machine: `--backend local` uses Ollama's `qwen3-embedding:4b` (or set `LLM_EMBED_MODEL`).
+- `--backend astra` answers with Astra but still embeds on the cluster, so both keys are needed.
+- Real systems often add exact-word search for part numbers and names.
 
 ## What to watch for
 
 - **Conflicts.** Two documents give different stud spacings. Does the answer mention both? Does it notice the dates?
 - **Outdated documents.** The 2025 delivery SLA is superseded, but nothing in the 2025 file says so. Retrieval cannot know.
-- **Split facts.** The 90-minute wall answer lives in several places. With `bm25_rag.py ... --k 2` what is lost?
+- **Split facts.** The 90-minute wall answer lives in several places. With `rag.py ... --k 2` what is lost?
 - **No answer.** Question 8 is not in the documents. Does the model say `NOT IN SOURCES` or invent a price?
-- **Language.** An English question will not find a German paragraph with BM25 (question 5 is in German for that reason).
+- **Language.** Question 5 is German and so is its document. Ask it in English too: does it still find the datasheet?
 - **Prompt injection.** `release_process_note.md` hides an instruction. Compare question 7 with and without `--harden`.
   Current models often ignore it even without the rule. That is not a guarantee.
 - **Cost.** Full-context sends about 5,000 tokens for every question; RAG sends about 700. With 8 documents that is fine. With 8,000, it is not possible.
@@ -75,4 +85,14 @@ fact split over several chunks may not be retrieved together. Production systems
   file) and a poor answer can show `yes`. Token counts are rough (characters / 4).
 - If you use Ollama on a laptop and full-context answers look strangely incomplete, its context window may be too small
   for the ~5,000-token prompt: restart it with `OLLAMA_CONTEXT_LENGTH=16384`.
-- `canned/` answers are illustrative, written by hand, and are labelled as canned in the output.
+- **Embeddings checked live (27 Nov 2026)** on the cluster with the workshop key: the 8 questions retrieved their sources 8 of 8,
+  as did 8 harder German or reworded questions. Locally, Ollama's `qwen3-embedding:4b` works too.
+- `canned/` is labelled in the output: RAG answers were recorded from a real model, full-context answers written by hand, and
+  `embeddings.json` holds saved vectors for these documents and questions only.
+
+## DSGVO articles as JSON (German)
+
+`python3 scrape_gdpr_article-de.py` turns articles of the German GDPR into JSON (`regulation`, `articles` with title, summary and
+full text). The code copies the legal text; only the summary comes from the model, so check it. Name article numbers, use `--all`
+for all 99, `--backend local` for your own machine. Art. 17 and 22 are saved in `dsgvo/`, so they work without the website.
+Text: Regulation (EU) 2016/679, German version, as shown on dsgvo-gesetz.de.

@@ -1,8 +1,10 @@
 """Shared helpers for the knowledge exercises. Standard library only.
 
-Pipeline in this file:  read docs -> chunk -> index (BM25 or TF-IDF) -> retrieve -> build prompt -> ask the model.
+Pipeline in this file:  read docs -> chunk -> embed -> retrieve -> build prompt -> ask the model.
 Read it top to bottom; every step is a small plain function.
 """
+import hashlib
+import json
 import math
 import os
 import re
@@ -82,107 +84,60 @@ def build_chunks(docs, max_chars=700, overlap_chars=200):
             out.append({"id": f"{name}#{n}", "file": name, "n": n, "text": c})
     return out
 
-# ---------------------------------------------------------------- 3. tokenising
+# ---------------------------------------------------------------- 3. embeddings
 
-STOPWORDS = set("""a an and are as at be by can do does for from has have how i if in is it its may me my of on or
-our so than that the their then there these they this to was we were what when where which who whom why will with you your
-der die das und ist sind ein eine einer einem den dem des im in an auf zu von mit bei für nicht wie was wer wo wann""".split())
-
-
-def tokenize(text, prefix=None):
-    """Lower-case words. Drops stop words, and strips a trailing 's' so 'pallets' matches 'pallet'.
-    With prefix=5 words are cut to their first 5 letters: a crude trick that lets 'Paletten' match 'Palette'."""
-    words = re.findall(r"\w+", text.lower())
-    out = []
-    for w in words:
-        if w in STOPWORDS:
-            continue
-        if len(w) > 3 and w.endswith("s"):
-            w = w[:-1]
-        out.append(w[:prefix] if prefix else w)
-    return out
-
-# ---------------------------------------------------------------- 4. indexes
-
-class BM25:
-    """BM25: score = sum over query words of  idf * tf*(k1+1) / (tf + k1*(1 - b + b*len/avglen)).
-    Rare words count more (idf); repeating a word helps only up to a point (k1); long chunks are slightly penalised (b)."""
-
-    def __init__(self, chunks, k1=1.5, b=0.75, prefix=None):
-        self.chunks, self.k1, self.b, self.prefix = chunks, k1, b, prefix
-        self.docs = [tokenize(c["text"], prefix) for c in chunks]
-        self.lengths = [len(d) for d in self.docs]
-        self.avg_len = (sum(self.lengths) / len(self.lengths)) if self.docs else 0.0
-        self.df = {}
-        for d in self.docs:
-            for w in set(d):
-                self.df[w] = self.df.get(w, 0) + 1
-        self.tf = []
-        for d in self.docs:
-            counts = {}
-            for w in d:
-                counts[w] = counts.get(w, 0) + 1
-            self.tf.append(counts)
-
-    def idf(self, word):
-        n, df = len(self.docs), self.df.get(word, 0)
-        return math.log(1 + (n - df + 0.5) / (df + 0.5))
-
-    def scores(self, query):
-        q = tokenize(query, self.prefix)
-        result = []
-        for i, counts in enumerate(self.tf):
-            s = 0.0
-            for w in q:
-                f = counts.get(w, 0)
-                if f:
-                    norm = f + self.k1 * (1 - self.b + self.b * self.lengths[i] / self.avg_len)
-                    s += self.idf(w) * f * (self.k1 + 1) / norm
-            result.append(s)
-        return result
-
-    def search(self, query, k=4):
-        """Top-k (score, chunk) pairs with score > 0, best first."""
-        sc = self.scores(query)
-        order = sorted(range(len(sc)), key=lambda i: -sc[i])[:k]
-        return [(sc[i], self.chunks[i]) for i in order if sc[i] > 0]
+# A model turns each text into a vector, and texts with similar MEANING get similar vectors, so a German question can find an
+# English paragraph. The cluster serves the model: nothing to download on your laptop.
+EMBED_MODELS = {"cluster": "qwen3-embedding-4b", "local": "qwen3-embedding:4b"}   # override: LLM_EMBED_MODEL
+EMBED_DIMENSIONS = 1024      # of the model's 2560; smaller to send and store, about the same quality
+# Qwen embedding models want this prefix on QUESTIONS only; documents are embedded as they are.
+QUERY_PREFIX = "Instruct: Given a question, retrieve relevant documents that answer it\nQuery:"
+SAVED_VECTORS = os.path.join(HERE, "canned", "embeddings.json")   # for --offline-demo: this folder's docs and questions
+_VECTORS = {}                # key -> vector, so each text is embedded once per run
 
 
-class TfIdf:
-    """The simplest keyword scorer: cosine similarity between tf-idf word vectors. Same interface as BM25."""
-
-    def __init__(self, chunks, prefix=None):
-        self.chunks, self.prefix = chunks, prefix
-        docs = [tokenize(c["text"], prefix) for c in chunks]
-        df = {}
-        for d in docs:
-            for w in set(d):
-                df[w] = df.get(w, 0) + 1
-        self.idf = {w: math.log((1 + len(docs)) / (1 + n)) + 1 for w, n in df.items()}
-        self.vectors = [self._vector(d) for d in docs]
-
-    def _vector(self, words):
-        counts = {}
-        for w in words:
-            counts[w] = counts.get(w, 0) + 1
-        vec = {w: c * self.idf.get(w, 0.0) for w, c in counts.items()}
-        norm = math.sqrt(sum(v * v for v in vec.values())) or 1.0
-        return {w: v / norm for w, v in vec.items()}
-
-    def search(self, query, k=4):
-        q = self._vector(tokenize(query, self.prefix))
-        scored = [(sum(v * q.get(w, 0.0) for w, v in vec.items()), c) for vec, c in zip(self.vectors, self.chunks)]
-        scored.sort(key=lambda x: -x[0])
-        return [(s, c) for s, c in scored[:k] if s > 0]
+def _key(model, text):
+    return hashlib.sha1(f"{model}\n{text}".encode()).hexdigest()
 
 
-def retrieve(chunks, query, k=4, method="bm25"):
-    """Return (hits, method_used). Falls back to a fuzzy 5-letter-prefix TF-IDF if nothing matched at all."""
-    index = BM25(chunks) if method == "bm25" else TfIdf(chunks)
-    hits = index.search(query, k)
-    if hits:
-        return hits, method
-    return TfIdf(chunks, prefix=5).search(query, k), "tfidf-prefix-fallback"
+def load_saved_vectors(path=SAVED_VECTORS):
+    with open(path, encoding="utf-8") as fh:
+        _VECTORS.update(json.load(fh)["vectors"])
+
+
+def embed(texts, backend=None, batch=64):
+    """One vector per text from the OpenAI-style /embeddings endpoint. Astra has no embeddings: the cluster is used."""
+    import llm
+    name = "local" if (backend or llm.default_backend()) == "local" else "cluster"
+    model = os.environ.get("LLM_EMBED_MODEL") or EMBED_MODELS[name]
+    missing = [t for t in dict.fromkeys(texts) if _key(model, t) not in _VECTORS]
+    for i in range(0, len(missing), batch):                      # batch: the server limits requests per second
+        part = missing[i:i + batch]
+        body = {"model": model, "input": part}
+        if name == "cluster":
+            body["dimensions"] = EMBED_DIMENSIONS
+        data = llm.post(name, llm.settings(name), "/embeddings", body)
+        for item in data["data"]:
+            _VECTORS[_key(model, part[item["index"]])] = item["embedding"]
+    return [_VECTORS[_key(model, t)] for t in texts]
+
+
+# ---------------------------------------------------------------- 4. search
+
+def _unit(v):
+    norm = math.sqrt(sum(x * x for x in v)) or 1.0
+    return [x / norm for x in v]
+
+
+def retrieve(chunks, query, k=4, backend=None):
+    """Top-k (score, chunk) pairs, best first. The score is the cosine similarity between question and chunk.
+
+    It always returns k chunks, however irrelevant: the model still has to say when the answer is not in them."""
+    vectors = [_unit(v) for v in embed([c["text"] for c in chunks], backend)]
+    q = _unit(embed([QUERY_PREFIX + query], backend)[0])
+    scored = [(sum(a * b for a, b in zip(q, v)), c) for v, c in zip(vectors, chunks)]
+    scored.sort(key=lambda x: -x[0])
+    return scored[:k]
 
 # ---------------------------------------------------------------- 5. prompts
 
@@ -231,13 +186,13 @@ def ask(prompt, system, backend=None, max_tokens=1500):
     return answer, time.time() - t
 
 
-def run_rag(question, chunks, k=4, method="bm25", backend=None, harden=False, answer_fn=None):
+def run_rag(question, chunks, k=4, backend=None, harden=False, answer_fn=None):
     """Full RAG round trip. answer_fn(prompt) -> (answer, seconds) lets tests/offline demo replace the model."""
-    hits, used = retrieve(chunks, question, k, method)
+    hits = retrieve(chunks, question, k, backend)
     prompt = rag_prompt(question, hits)
     system = system_prompt("[file#chunk], for example [returns_policy.md#2]", harden)
     answer, secs = (answer_fn(prompt) if answer_fn else ask(prompt, system, backend))
-    return {"answer": answer, "seconds": secs, "hits": hits, "method": used, "prompt": prompt, "system": system,
+    return {"answer": answer, "seconds": secs, "hits": hits, "prompt": prompt, "system": system,
             "tokens": estimate_tokens(system + prompt) + estimate_tokens(answer)}
 
 

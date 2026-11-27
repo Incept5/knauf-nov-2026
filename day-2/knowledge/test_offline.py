@@ -3,10 +3,12 @@ import contextlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
 import unittest
+import zlib
 from unittest import mock
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -81,32 +83,36 @@ class MockedBackends(unittest.TestCase):
 
 # ------------------------------------------------------------------ retrieval
 
+def fake_embed(texts, backend=None):
+    """Stand-in for the embedding model: a bag of word stems, so texts sharing words get similar vectors."""
+    out = []
+    for t in texts:
+        v = [0.0] * 256
+        for w in re.findall(r"\w+", t.split("Query:")[-1].lower()):
+            v[zlib.crc32(w[:5].encode()) % 256] += 1.0
+        out.append(v)
+    return out
+
+
 class TestRetrieval(unittest.TestCase):
     CORPUS = {"a.md": "Cats sleep a lot.\n\nCats chase mice at night.", "b.md": "Dogs bark loudly.\n\nDogs love long walks.",
               "c.md": "Pallets of plasterboard must be stored flat.\n\nStack pallets at most two high."}
 
-    def test_bm25_ranks_relevant_chunk_first(self):
+    def test_retrieval_ranks_by_vector_similarity(self):
         chunks = rag_lib.build_chunks(self.CORPUS, max_chars=60, overlap_chars=0)
-        hits, method = rag_lib.retrieve(chunks, "how high can I stack a pallet", k=3)
-        self.assertEqual(method, "bm25")
-        self.assertEqual(hits[0][1]["file"], "c.md")              # also checks 'pallets' ~ 'pallet'
+        with mock.patch.object(rag_lib, "embed", fake_embed):
+            hits = rag_lib.retrieve(chunks, "how high can I stack pallets", k=3)
+        self.assertEqual(len(hits), 3)
+        self.assertEqual(hits[0][1]["file"], "c.md")
         self.assertEqual(hits, sorted(hits, key=lambda h: -h[0]))
 
-    def test_no_match_returns_nothing(self):
+    def test_question_gets_the_instruction_prefix_and_documents_do_not(self):
+        seen = []
         chunks = rag_lib.build_chunks(self.CORPUS)
-        hits, method = rag_lib.retrieve(chunks, "zzzz qqqq")
-        self.assertEqual(hits, [])
-
-    def test_fallback_matches_word_endings(self):
-        chunks = rag_lib.build_chunks({"d.md": "Im Lager stehen Paletten mit Platten."})
-        hits, method = rag_lib.retrieve(chunks, "Palette")
-        self.assertEqual(method, "tfidf-prefix-fallback")
-        self.assertEqual(len(hits), 1)
-
-    def test_tfidf_ranks_relevant_chunk_first(self):
-        chunks = rag_lib.build_chunks(self.CORPUS, max_chars=60, overlap_chars=0)
-        hits, _ = rag_lib.retrieve(chunks, "dogs walks", k=2, method="tfidf")
-        self.assertEqual(hits[0][1]["file"], "b.md")
+        with mock.patch.object(rag_lib, "embed", lambda t, b=None: (seen.append(list(t)), fake_embed(t))[1]):
+            rag_lib.retrieve(chunks, "cats?", k=1)
+        self.assertFalse(any(rag_lib.QUERY_PREFIX in t for t in seen[0]))
+        self.assertEqual(seen[1], [rag_lib.QUERY_PREFIX + "cats?"])
 
     def test_chunking_limit_overlap_and_ids(self):
         paras = [f"Paragraph number {i} with some filler words to take space." for i in range(10)]
@@ -143,11 +149,15 @@ class TestRetrieval(unittest.TestCase):
 
 class TestRagWithMockModel(MockedBackends):
     def test_rag_prompt_contains_only_retrieved_chunks_and_citation_rule(self):
-        server = self.serve(lambda p, b, h: chat_reply("48 hours [returns.md#1]"))
+        def handler(path, body, headers):
+            if path.endswith("/embeddings"):
+                return {"data": [{"index": i, "embedding": v} for i, v in enumerate(fake_embed(body["input"]))]}
+            return chat_reply("48 hours [returns.md#1]")
+        server = self.serve(handler)
         chunks = rag_lib.build_chunks({"returns.md": "Damage must be reported within 48 hours.",
                                        "other.md": "Zebras live in Africa."})
         r = rag_lib.run_rag("How soon must damage be reported?", chunks, k=1)
-        sent = server.requests[0][1]["messages"]
+        sent = [r for r in server.requests if r[0].endswith("/chat/completions")][0][1]["messages"]
         self.assertIn("[returns.md#1]", sent[1]["content"])
         self.assertNotIn("Zebras", sent[1]["content"])
         self.assertIn("NOT IN SOURCES", sent[0]["content"])
@@ -333,7 +343,7 @@ class TestCompareOffline(unittest.TestCase):
                              capture_output=True, text=True, timeout=60, env=env)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("CANNED", out.stdout)
-        self.assertIn("RAG: 4 of 8", out.stdout)
+        self.assertIn("RAG: 8 of 8", out.stdout)
         self.assertIn("FULL: 8 of 8", out.stdout)
 
 
